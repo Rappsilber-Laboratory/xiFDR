@@ -285,8 +285,26 @@ public class XiCSVinFDR extends CSVinFDR implements XiInFDR{
         FDRSettings settings = new FDRSettingsImpl();
         String[] files = ofdr.parseArgs(argv, settings);
         
-        // assume that everything that was not matched to an argument is a file
+        readFromCommandline(ofdr, files);
+
+        if (ofdr.cofilterArgs != null) {
+            ofdr.cofilter = new XiCSVinFDR();
+            String[] cofiles = ofdr.cofilter.parseArgs(argv, settings);
+            readFromCommandline((XiCSVinFDR)ofdr.cofilter, cofiles);
+        }
         
+        Logger.getLogger(XiCSVinFDR.class.getName()).log(Level.INFO, "Calculate FDR");
+        ofdr.calculateWriteFDR(ofdr.getCsvOutDirSetting(), ofdr.getCsvOutBaseSetting(), ",", settings);
+
+
+
+        System.exit(0);
+
+        
+    }
+
+    protected static void readFromCommandline(XiCSVinFDR ofdr, String[] files) {
+        // assume that everything that was not matched to an argument is a file
         if (files.length == 0) {
             ofdr.printUsage();
             System.exit(1);
@@ -356,15 +374,6 @@ public class XiCSVinFDR extends CSVinFDR implements XiInFDR{
                 System.exit(-1);
             }
         }
-        
-        Logger.getLogger(XiCSVinFDR.class.getName()).log(Level.INFO, "Calculate FDR");
-        ofdr.calculateWriteFDR(ofdr.getCsvOutDirSetting(), ofdr.getCsvOutBaseSetting(), ",", settings);
-
-
-
-        System.exit(0);
-
-        
     }
 
     

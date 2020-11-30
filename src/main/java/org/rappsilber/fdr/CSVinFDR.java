@@ -526,7 +526,7 @@ public class CSVinFDR extends OfflineFDR {
     }
     
     public String argList() {
-        return super.argList() + " --map=col:name,col:name --delimiter= --quote= --inputlocale=  csv-file1 csv-file2";
+        return super.argList() + " --map=col:name,col:name --delimiter= --quote= --inputlocale= --cofilter csv-file1 csv-file2";
     }
     
     public String argDescription() {
@@ -569,6 +569,9 @@ public class CSVinFDR extends OfflineFDR {
                 + "                          in the CSV\n"
                 + "--inputlocale            local to use to interpret numbers\n"
                 + "                         default: en\n "
+                + "--cofilter               a file that should be read in and "
+                + "                         filtered in parrallel to the current "
+                + "                         actual fdr calculation\n "
                 + "--delimiter              what separates fields in the file\n "
                 + "--quote                  how are text fields qoted\n"
                 + "                         e.g. each field that contains the\n"
@@ -578,10 +581,10 @@ public class CSVinFDR extends OfflineFDR {
     
         
     @Override
-    public String[] parseArgs(String[] argv, FDRSettings setings) {
+    public String[] parseArgs(String[] inargv, FDRSettings setings) {
         ArrayList<String> unknown = new ArrayList<String>();
         
-        argv = super.parseArgs(argv, setings);
+        String[] argv = super.parseArgs(inargv, setings);
         
         for (String arg : argv) {
             if (arg.toLowerCase().startsWith("--map=")) {
@@ -627,6 +630,18 @@ public class CSVinFDR extends OfflineFDR {
             } else if(arg.toLowerCase().contentEquals("--help")) {
                 printUsage();
                 System.exit(0);
+            } else if(arg.toLowerCase().startsWith("--cofilter=")) {
+                ArrayList<String> cargs  = new ArrayList<>();
+                for (String s : inargv) {
+                    if (s.contains("=")) {
+                        if (s.toLowerCase().startsWith("--cofilter=")) {
+                            cargs.add(s.substring("--cofilter=".length()));
+                        } else {
+                            cargs.add(s);
+                        }
+                    }
+                    cofilterArgs = cargs.toArray(new String[cargs.size()]);
+                }
             }  else {
                unknown.add(arg);
             }
@@ -676,11 +691,32 @@ public class CSVinFDR extends OfflineFDR {
     
     public static void main (String[] argv) throws SQLException, FileNotFoundException {
         
+                
+
         CSVinFDR ofdr = new CSVinFDR();
         FDRSettings settings = new FDRSettingsImpl();
-                
         String[] files = ofdr.parseArgs(argv, settings);
         
+        readFromCommandline(ofdr, files);
+        
+        if (ofdr.cofilterArgs != null) {
+            ofdr.cofilter = new CSVinFDR();
+            String[] cofiles = ofdr.cofilter.parseArgs(ofdr.cofilterArgs, settings);
+            readFromCommandline((CSVinFDR)ofdr.cofilter, cofiles);
+        }
+        
+        Logger.getLogger(CSVinFDR.class.getName()).log(Level.INFO, "Calculate FDR");
+        if (((DecimalFormat)ofdr.getNumberFormat()).getDecimalFormatSymbols().getDecimalSeparator() == ',') {
+            ofdr.calculateWriteFDR(ofdr.getCsvOutDirSetting(), ofdr.getCsvOutBaseSetting(), ";", settings);
+        } else 
+            ofdr.calculateWriteFDR(ofdr.getCsvOutDirSetting(), ofdr.getCsvOutBaseSetting(), ",", settings);
+
+        System.exit(0);
+
+        
+    }
+
+    protected static void readFromCommandline(CSVinFDR ofdr, String[] files) {
         if (ofdr.getCsvOutDirSetting() != null) {
             if (ofdr.getCsvOutBaseSetting() == null) {
                 ofdr.setCsvOutBaseSetting("FDR");
@@ -764,16 +800,6 @@ public class CSVinFDR extends OfflineFDR {
                 System.exit(-1);
             }
         }
-        
-        Logger.getLogger(CSVinFDR.class.getName()).log(Level.INFO, "Calculate FDR");
-        if (((DecimalFormat)ofdr.getNumberFormat()).getDecimalFormatSymbols().getDecimalSeparator() == ',') {
-            ofdr.calculateWriteFDR(ofdr.getCsvOutDirSetting(), ofdr.getCsvOutBaseSetting(), ";", settings);
-        } else 
-            ofdr.calculateWriteFDR(ofdr.getCsvOutDirSetting(), ofdr.getCsvOutBaseSetting(), ",", settings);
-
-        System.exit(0);
-
-        
     }
 
     /**

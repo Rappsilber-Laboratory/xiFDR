@@ -18,6 +18,8 @@ package org.rappsilber.fdr;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.PrintWriter;
+import java.lang.reflect.ParameterizedType;
+import java.lang.reflect.Type;
 import java.text.DecimalFormat;
 import java.text.NumberFormat;
 import java.util.ArrayList;
@@ -77,6 +79,10 @@ import rappsilber.utils.MyArrayUtils;
  */
 public abstract class OfflineFDR {
 
+    OfflineFDR cofilter;
+    FDRResult coResult;
+    String[] cofilterArgs;
+    
     /**
      * store all psm
      */
@@ -1555,40 +1561,128 @@ public abstract class OfflineFDR {
         boolean ignoreGroups = this.ignoreGroupsSetting;
         result.reportFactor = settings.getReportFactor();
         reset();
+        if (cofilter !=null) {
+            coResult = new FDRResult();
+            cofilter.settings = new FDRSettingsImpl();
+            cofilter.settings.setAll(settings);
+            cofilter.settings.setPSMFDR(100d);
+            cofilter.settings.setPeptidePairFDR(100d);
+            cofilter.settings.setProteinGroupFDR(100d);
+            cofilter.settings.setProteinGroupLinkFDR(100d);
+            cofilter.settings.setProteinGroupPairFDR(100d);
+            coResult.reportFactor = settings.getReportFactor();
+            cofilter.reset();
+        }
 
         Logger.getLogger(this.getClass().getName()).log(Level.INFO, "Input PSM :" + getAllPSMs().size() + "\n calculation psm-fdr");
         calculatePSMFDR(setElementFDR, ignoreGroups, result, settings);
+        if (cofilter != null) {
+            // do a 100%FDR to just apply any maybe defined filters
+            cofilter.calculatePSMFDR(setElementFDR, ignoreGroups, coResult, cofilter.settings);
+            
+            // and filter the result by worst score
+            coFilterResultLevel(result.psmFDR, coResult.psmFDR);
+        }
 
         Logger.getLogger(this.getClass().getName()).log(Level.INFO, "fdr PSM :" + result.psmFDR.getResultCount() + "\n calculation peptidepair-fdr");
         calculatePeptidePairFDR(setElementFDR, result, settings, ignoreGroups);
+        if (cofilter != null) {
+            // do a 100%FDR to just apply any maybe defined filters
+            cofilter.calculatePeptidePairFDR(setElementFDR, coResult, cofilter.settings, ignoreGroups);
+            
+            // and filter the result by worst score
+            coFilterResultLevel(result.peptidePairFDR, coResult.peptidePairFDR);
+        }
 
         Logger.getLogger(this.getClass().getName()).log(Level.INFO, "fdr peptide-pairs :" + result.peptidePairFDR.getResultCount() + "\n calculation protein-group-fdr");
         calculateProteinGroupFDR(ignoreGroups, setElementFDR, settings, result);
+        if (cofilter != null) {
+            // do a 100%FDR to just apply any maybe defined filters
+            cofilter.calculateProteinGroupFDR(ignoreGroups, setElementFDR, cofilter.settings, coResult);
+            
+            // and filter the result by worst score
+            coFilterResultLevel(result.proteinGroupFDR, coResult.proteinGroupFDR);
+        }
 
         Logger.getLogger(this.getClass().getName()).log(Level.INFO, "fdr protein groups :" + result.proteinGroupFDR.getResultCount() + "\n filtering peptide pairs by protein groups");
         filterFDRPeptidePairsByFDRProteinGroups(result);
+        if (cofilter != null) {
+            cofilter.filterFDRPeptidePairsByFDRProteinGroups(coResult);
+        }
 
         Logger.getLogger(this.getClass().getName()).log(Level.INFO, "fdr peptide-pairs :" + result.peptidePairFDR.getResultCount() + "\n calculation link-fdr");
         calculateLinkFDR(ignoreGroups, setElementFDR, settings, result);
+        if (cofilter != null) {
+            // do a 100%FDR to just apply any maybe defined filters
+            cofilter.calculateLinkFDR(ignoreGroups, setElementFDR, cofilter.settings, coResult);
+            
+            // and filter the result by worst score
+            coFilterResultLevel(result.proteinGroupLinkFDR, coResult.proteinGroupLinkFDR);
+        }
 
         Logger.getLogger(this.getClass().getName()).log(Level.INFO, "fdr links :" + result.proteinGroupLinkFDR.getResultCount() + "\n calculation protein-group-pair-fdr");
         calculateProteinGroupPairFDR(ignoreGroups, setElementFDR, settings, result);
+        if (cofilter != null) {
+            // do a 100%FDR to just apply any maybe defined filters
+            cofilter.calculateProteinGroupPairFDR(ignoreGroups, setElementFDR, cofilter.settings, coResult);
+            
+            // and filter the result by worst score
+            coFilterResultLevel(result.proteinGroupPairFDR, coResult.proteinGroupPairFDR);
+        }
 
         Logger.getLogger(this.getClass().getName()).log(Level.INFO, "fdr protein-group-pairs :" + result.proteinGroupPairFDR.getResultCount() + "\n filtering links by protein-group-pairs");
         filterFDRLinksByFDRProteinGroupPairs(result);
+        if (cofilter != null) {
+            cofilter.filterFDRLinksByFDRProteinGroupPairs(coResult);
+        }
 
         Logger.getLogger(this.getClass().getName()).log(Level.INFO, "fdr links :" + result.proteinGroupLinkFDR.getResultCount() + "\n filtering peptide pairs by links");
         filterFDRPeptidePairsByFDRProteinGroupLinks(result);
+        if (cofilter != null) {
+            cofilter.filterFDRPeptidePairsByFDRProteinGroupLinks(coResult);
+        }
 
         Logger.getLogger(this.getClass().getName()).log(Level.INFO, "fdr peptide-pairs :" + result.peptidePairFDR.getResultCount() + "\n filtering psm by peptide pairs");
         filterFDRPSMByFDRPeptidePairs(result);
+        if (cofilter != null) {
+            cofilter.filterFDRPSMByFDRPeptidePairs(coResult);
+        }
 
         Logger.getLogger(this.getClass().getName()).log(Level.INFO, "fdr psms :" + result.psmFDR.getResultCount() + "\n filtering ProteinGroups by peptide pairs");
         filterFDRProteinGroupsByFDRPeptidePairs(result);
+        if (cofilter != null) {
+            cofilter.filterFDRProteinGroupsByFDRPeptidePairs(coResult);
+        }
         Logger.getLogger(this.getClass().getName()).log(Level.INFO, "fdr protein groups :" + result.proteinGroupFDR.getResultCount());
 
         return result;
 
+    }
+
+    protected void coFilterResultLevel(FDRResultLevel resultdata, FDRResultLevel coResultdata) {
+        // now filter each subgroup
+        if (resultdata.getGroupIDs().containsAll(coResultdata.getGroupIDs()) &&
+                coResultdata.getGroupIDs().containsAll(resultdata.getGroupIDs())) {
+            for (Object gid : resultdata.getGroupIDs()) {
+                SubGroupFdrInfo g = resultdata.getGroup(gid.toString());
+                SubGroupFdrInfo cg = coResultdata.getGroup(gid.toString());
+                double lowest_score = g.worstAcceptedScore;
+                ArrayList toRemove = new ArrayList<>();
+                for (Object p : cg.results) {
+                    if (((FDRSelfAdd)p).getScore()<lowest_score)
+                        toRemove.add(p);
+                }
+                cg.results.removeAll(toRemove);
+            }
+            
+        } else {
+            Type level  =((ParameterizedType)getClass().getGenericSuperclass()).getActualTypeArguments()[0];
+            
+            Logger.getLogger(this.getClass().getName()).log(Level.SEVERE,"Cofiltered dataset has not the same sub groups ("+level.getTypeName()+"\n ["
+                    +RArrayUtils.toString(resultdata.getGroupIDs(), ",") + "] sv \n ["
+                    +RArrayUtils.toString(coResultdata.getGroupIDs(), ",") + "]");
+            System.exit(-1);
+        }
     }
 
     public String summaryString(FDRResult result) {
@@ -1623,6 +1717,9 @@ public abstract class OfflineFDR {
     public void writeFiles(String path, String baseName, String fileextension, String seperator, FDRResult result) throws FileNotFoundException {
         CSVRandomAccess csvFormater = new CSVRandomAccess(seperator.charAt(0), '"');
         csvFormater.setLocale(outputlocale);
+        if (cofilter != null && coResult != null) {
+            cofilter.writeFiles(path, "cofiltered_" + baseName, fileextension, seperator, coResult);
+        }
 
         String extension = "_xiFDR" + OfflineFDR.xiFDRVersion + fileextension;
 
