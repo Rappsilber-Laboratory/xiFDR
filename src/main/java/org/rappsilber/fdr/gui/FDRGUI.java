@@ -837,6 +837,7 @@ public class FDRGUI extends javax.swing.JFrame {
     protected CSVinFDR innerBatchReadCSV(File config, File fasta,CsvCondition filter,OfflineFDR.Normalisation normalisation) throws IOException, ParseException {
         Iterator<CsvParser> csvs = csvSelect.iterator();
         CsvParser csv = csvs.next();
+        String forwardPattern = csvSelect.getForwardPattern();
 
         CSVinFDR ofdr = null;
         if (config != null && fasta != null) {
@@ -848,6 +849,8 @@ public class FDRGUI extends javax.swing.JFrame {
         }else {
             ofdr = new CSVinFDR();
         }
+        if (forwardPattern != null && !forwardPattern.isEmpty())
+            ofdr.setForwardPattern(forwardPattern);
         if (addCSV(ofdr, null, csv,filter)) {
 
             while (csvs.hasNext()) {
@@ -863,6 +866,8 @@ public class FDRGUI extends javax.swing.JFrame {
                 }else {
                     nextfdr = new CSVinFDR();
                 }
+                if (forwardPattern != null && !forwardPattern.isEmpty())
+                    nextfdr.setForwardPattern(forwardPattern);
 
 
                 if (!addCSV(nextfdr, ofdr, csv,filter)) {

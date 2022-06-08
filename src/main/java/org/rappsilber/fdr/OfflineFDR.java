@@ -618,15 +618,15 @@ public abstract class OfflineFDR {
         for (String fg : fdrGroups) {
             summaryOut.print(seperator + (((SubGroupFdrInfo) level.getGroup(fg)).inputCount));
         }
-        summaryOut.print("\n\"TT\"");
+        summaryOut.print("\n\"Input TT\"");
         for (String fg : fdrGroups) {
             summaryOut.print(seperator + ((SubGroupFdrInfo) level.getGroup(fg)).TT);
         }
-        summaryOut.print("\n\"TD\"");
+        summaryOut.print("\n\"Input TD\"");
         for (String fg : fdrGroups) {
             summaryOut.print(seperator + ((SubGroupFdrInfo) level.getGroup(fg)).TD);
         }
-        summaryOut.print("\n\"DD\"");
+        summaryOut.print("\n\"Input DD\"");
         for (String fg : fdrGroups) {
             summaryOut.print(seperator + ((SubGroupFdrInfo) level.getGroup(fg)).DD);
         }
@@ -634,15 +634,15 @@ public abstract class OfflineFDR {
         for (String fg : fdrGroups) {
             summaryOut.print(seperator + ((SubGroupFdrInfo) level.getGroup(fg)).results.size());
         }
-        summaryOut.print("\n\"TT\"");
+        summaryOut.print("\n\"FDR TT\"");
         for (String fg : fdrGroups) {
             summaryOut.print(seperator + ((SubGroupFdrInfo) level.getGroup(fg)).resultTT);
         }
-        summaryOut.print("\n\"TD\"");
+        summaryOut.print("\n\"FDR TD\"");
         for (String fg : fdrGroups) {
             summaryOut.print(seperator + ((SubGroupFdrInfo) level.getGroup(fg)).resultTD);
         }
-        summaryOut.print("\n\"DD\"");
+        summaryOut.print("\n\"FDR DD\"");
         for (String fg : fdrGroups) {
             summaryOut.print(seperator + ((SubGroupFdrInfo) level.getGroup(fg)).resultDD);
         }
@@ -802,7 +802,8 @@ public abstract class OfflineFDR {
         double npeptide1Score;
         double npeptide2Score;
 
-        if (protcomp < 0 || (protcomp == 0 && pepcomp < 0) || (protcomp == 0 && pepcomp == 0 && site1 < site2)) {
+        // switching peptides for psms can mess up a lot - so disabled for now
+        //if (protcomp < 0 || (protcomp == 0 && pepcomp < 0) || (protcomp == 0 && pepcomp == 0 && site1 < site2)) {
             npepid1 = peptide1;
             npepid2 = peptide2;
             npeplen1 = peplen1;
@@ -816,20 +817,21 @@ public abstract class OfflineFDR {
             npeptide1Score = peptide1Score;
             npeptide2Score = peptide2Score;
 
-        } else {
-            npepid1 = peptide2;
-            npepid2 = peptide1;
-            npeplen1 = peplen2;
-            npeplen2 = peplen1;
-            nsite1 = site2;
-            nsite2 = site1;
-            nproteinId1 = proteinId2;
-            nproteinId2 = proteinId1;
-            npepPosition1 = pepPosition2;
-            npepPosition2 = pepPosition1;
-            npeptide1Score = peptide2Score;
-            npeptide2Score = peptide1Score;
-        }
+//        } else {
+//            
+//            npepid1 = peptide2;
+//            npepid2 = peptide1;
+//            npeplen1 = peplen2;
+//            npeplen2 = peplen1;
+//            nsite1 = site2;
+//            nsite2 = site1;
+//            nproteinId1 = proteinId2;
+//            nproteinId2 = proteinId1;
+//            npepPosition1 = pepPosition2;
+//            npepPosition2 = pepPosition1;
+//            npeptide1Score = peptide2Score;
+//            npeptide2Score = peptide1Score;
+//        }
 
         if (!PSMScoreHighBetter) {
             score = 10 - (10 * score);

@@ -200,8 +200,11 @@ public class CSVinFDR extends OfflineFDR {
         Integer cDelta = getColumn(csv,"delta",true);
         Integer cPep1Coverage = getColumn(csv,"peptide coverage1",true);
         Integer cPep2Coverage = getColumn(csv,"peptide coverage2",true);
+        Integer cPep1Frags = getColumn(csv,"peptide1 fragments",true);
+        Integer cPep2Frags = getColumn(csv,"peptide2 fragments",true);
         Integer cPepStubs = getColumn(csv,"peptides with stubs",true);
         Integer cPepDoublets = getColumn(csv,"peptides with doublets",true);
+        
         Integer cPepMinCoverage = getColumn(csv,"minimum peptide coverage",true);
         Integer cRetentionTime = getColumn(csv,"retention_time", true);
         Integer cRank = getColumn(csv,"rank",true);
@@ -407,12 +410,12 @@ public class CSVinFDR extends OfflineFDR {
 
                 int[] ipeppos1 = new int[pepPositions1.length];
                 for (int i = 0; i<pepPositions1.length; i++) {
-                    ipeppos1[i] = Integer.parseInt(pepPositions1[i].trim());
+                    ipeppos1[i] = Integer.parseInt(pepPositions1[i].trim().replace(",", ""));
                 }
 
                 int[] ipeppos2 = new int[pepPositions2.length];
                 for (int i = 0; i<pepPositions2.length; i++) {
-                    ipeppos2[i] = Integer.parseInt(pepPositions2[i]);
+                    ipeppos2[i] = Integer.parseInt(pepPositions2[i].replace(",", ""));
                 }
 
                 String run = crun == null ? "":csv.getValue(crun);
@@ -518,6 +521,25 @@ public class CSVinFDR extends OfflineFDR {
                     }
                     
                 }
+                
+                if (cPep1Frags != null) 
+                    psm.addOtherInfo("P1Fragments", csv.getDouble(cPep1Frags));
+                    
+                if (cPep2Frags != null) 
+                    psm.addOtherInfo("P2Fragments", csv.getDouble(cPep2Frags));
+                
+                    if (pepSeq2 != null && !pepSeq2.isEmpty() ) {
+                        if (cPep1Frags != null && cPep2Frags != null) {
+                            psm.addOtherInfo("minPepCoverageAbsolute",
+                                Math.min(csv.getDouble(cPep1Frags), csv.getDouble(cPep2Frags)));
+                            psm.addOtherInfo("MinFragments",
+                                (Double)psm.getOtherInfo("minPepCoverageAbsolute"));
+                        }
+                    } else if(cPep1Frags != null) {
+                        psm.addOtherInfo("minPepCoverageAbsolute", csv.getDouble(cPep1Frags));
+                        psm.addOtherInfo("MinFragments",
+                            (Double)psm.getOtherInfo("minPepCoverageAbsolute"));
+                    }
                 
                 for (int c : peaks) {
                     psm.addOtherInfo(header[c], csv.getDouble(c));

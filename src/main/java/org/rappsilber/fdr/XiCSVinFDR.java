@@ -153,7 +153,7 @@ public class XiCSVinFDR extends CSVinFDR implements XiInFDR{
         double npep1score;
         double npep2score;
 
-        if (protcomp < 0 || (protcomp == 0 && pepcomp < 0) || (protcomp == 0 && pepcomp == 0 && site1 < site2)) {
+//        if (protcomp < 0 || (protcomp == 0 && pepcomp < 0) || (protcomp == 0 && pepcomp == 0 && site1 < site2)) {
             npepid1 = peptide1;
             npepid2 = peptide2;
             npeplen1 = peplen1;
@@ -167,20 +167,20 @@ public class XiCSVinFDR extends CSVinFDR implements XiInFDR{
             npep1score = pep1score;
             npep2score = pep2score;
 
-        } else {
-            npepid1 = peptide2;
-            npepid2 = peptide1;
-            npeplen1 = peplen2;
-            npeplen2 = peplen1;
-            nsite1 = (byte)site2;
-            nsite2 = (byte)site1;
-            nproteinId1 = proteinId2;
-            nproteinId2 = proteinId1;
-            npepPosition1 = pepPosition2;
-            npepPosition2 = pepPosition1;
-            npep1score = pep2score;
-            npep2score = pep1score;
-        }
+//        } else {
+//            npepid1 = peptide2;
+//            npepid2 = peptide1;
+//            npeplen1 = peplen2;
+//            npeplen2 = peplen1;
+//            nsite1 = (byte)site2;
+//            nsite2 = (byte)site1;
+//            nproteinId1 = proteinId2;
+//            nproteinId2 = proteinId1;
+//            npepPosition1 = pepPosition2;
+//            npepPosition2 = pepPosition1;
+//            npep1score = pep2score;
+//            npep2score = pep1score;
+//        }
 
         if (!PSMScoreHighBetter) {
             score = 10 - (10 * score);
