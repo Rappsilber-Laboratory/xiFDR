@@ -1210,8 +1210,15 @@ public class PSM extends AbstractFDRElement<PSM> {
         int column = allInfoColumn.getInt(name);
         if (column == -1)
             return null;
-        if (column >= 1000)
+        if (column >= 1000) {
+            if (numericInfo.size() <=column - 1000)
+                return Double.NaN;
             return numericInfo.get(column - 1000);
+        }
+        
+        if (otherInfo.size() <= column)
+            return "";
+        
         return otherInfo.get(column);
     }
 
@@ -1265,6 +1272,8 @@ public class PSM extends AbstractFDRElement<PSM> {
         } if (col >=1000) {
             return Double.class;
         }
+        if (otherInfoType.size() - 1 < col )
+            return null;
         return otherInfoType.get(col);
     }
 

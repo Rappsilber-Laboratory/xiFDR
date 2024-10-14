@@ -2396,6 +2396,10 @@ public class DBinFDR extends org.rappsilber.fdr.OfflineFDR implements XiInFDR {
             } else if (arg.toLowerCase().startsWith("--filter=")) {
                 filters.add(arg.substring(arg.indexOf("=") + 1).trim());
 
+            } else if(arg.toLowerCase().startsWith("--forward=")) {
+                String forwardPattern=arg.substring("--forward=".length());
+                setSubScoresToForward(forwardPattern);
+
             } else if (arg.toLowerCase().equals("--crosslinkonly") || arg.equals("-C")) {
                 filters.add("p2.accessen_number is not null");
 

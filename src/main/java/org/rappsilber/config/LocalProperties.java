@@ -132,10 +132,10 @@ public  class LocalProperties {
      */
     public static synchronized Object setProperty(String key, String value)  {
         String old = localProperties.getProperty(key);
-        if (old == null || old.contentEquals(value)) {
+        if ((old == null && value != null) || old.contentEquals(value)) {
             Object ret = localProperties.setProperty(key, value);
             try {
-                    localProperties.store(new FileOutputStream(userPropertiesFile), "XLink local properties file");
+                localProperties.store(new FileOutputStream(userPropertiesFile), "XLink local properties file");
             } catch (FileNotFoundException ex) {
                 Logger.getLogger(LocalProperties.class.getName()).log(Level.SEVERE, null, ex);
             } catch (IOException ex) {
@@ -143,8 +143,10 @@ public  class LocalProperties {
             }
             return ret;
         } else
-            return localProperties.setProperty(key, value);
-
+            if (value == null) {
+                return localProperties.remove(key);
+            } else 
+                return localProperties.setProperty(key, value);
     }
 
 

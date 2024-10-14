@@ -11,11 +11,11 @@
             </goals>
             <properties>
                 <exec.args>${exec.vmArgs} -classpath %classpath ${exec.mainClass} ${exec.appArgs}</exec.args>
-                <exec.executable>java</exec.executable>
-                <exec.workingdir></exec.workingdir>
-                <exec.appArgs>--dbids=14107 --filter="(scoreP1Coverage &gt;= 4 AND (pepSeq2 is null OR  scoreP2Coverage &gt;= 4 )) AND (deltaScore &gt;= Score/2.5) AND (pepSeq2 is not null) AND (mgxrank &lt;= 3)" --psmfdr=100 --pepfdr=100 --proteinfdr=100 --linkfdr=100 --ppifdr=100 --csvOutDir=/data/rappstore/new_storage/fschimweg/xiSearch/myco-dss --csvBaseName=14107 --connection=jdbc:postgresql://xidb.bioanalytik.tu-berlin.de:5432/xi3 --user=bio_user --password=bio1sTheUs3r</exec.appArgs>
+                <exec.mainClass>org.rappsilber.fdr.CommandLine</exec.mainClass>
+                <exec.appArgs></exec.appArgs>
                 <exec.vmArgs>-Dfile.encoding=UTF-8 --add-opens java.base/java.lang=ALL-UNNAMED --add-opens java.base/java.util=ALL-UNNAMED -Xmx4G</exec.vmArgs>
-                <exec.mainClass>org.rappsilber.fdr.DBinFDR</exec.mainClass>
+                <exec.workingdir></exec.workingdir>
+                <exec.executable>java</exec.executable>
             </properties>
         </action>
         <action>
@@ -29,12 +29,12 @@
             </goals>
             <properties>
                 <exec.args>${exec.vmArgs} -classpath %classpath ${exec.mainClass} ${exec.appArgs}</exec.args>
-                <exec.executable>java</exec.executable>
-                <jpda.listen>true</jpda.listen>
-                <exec.workingdir></exec.workingdir>
-                <exec.appArgs>--dbids=14107 --filter="(scoreP1Coverage &gt;= 4 AND (pepSeq2 is null OR  scoreP2Coverage &gt;= 4 )) AND (deltaScore &gt;= Score/2.5) AND (pepSeq2 is not null) AND (mgxrank &lt;= 3)" --psmfdr=100 --pepfdr=100 --proteinfdr=100 --linkfdr=100 --ppifdr=100 --csvOutDir=/data/rappstore/new_storage/fschimweg/xiSearch/myco-dss --csvBaseName=14107 --connection=jdbc:postgresql://xidb.bioanalytik.tu-berlin.de:5432/xi3 --user=bio_user --password=bio1sTheUs3r</exec.appArgs>
+                <exec.mainClass>org.rappsilber.fdr.CommandLine</exec.mainClass>
+                <exec.appArgs></exec.appArgs>
                 <exec.vmArgs>-Dfile.encoding=UTF-8 --add-opens java.base/java.lang=ALL-UNNAMED --add-opens java.base/java.util=ALL-UNNAMED -Xmx4G -agentlib:jdwp=transport=dt_socket,server=n,address=${jpda.address}</exec.vmArgs>
-                <exec.mainClass>org.rappsilber.fdr.DBinFDR</exec.mainClass>
+                <exec.workingdir></exec.workingdir>
+                <jpda.listen>true</jpda.listen>
+                <exec.executable>java</exec.executable>
             </properties>
         </action>
         <action>
@@ -48,11 +48,11 @@
             </goals>
             <properties>
                 <exec.args>${exec.vmArgs} -classpath %classpath ${exec.mainClass} ${exec.appArgs}</exec.args>
-                <exec.executable>java</exec.executable>
-                <exec.workingdir></exec.workingdir>
-                <exec.appArgs>--dbids=14107 --filter="(scoreP1Coverage &gt;= 4 AND (pepSeq2 is null OR  scoreP2Coverage &gt;= 4 )) AND (deltaScore &gt;= Score/2.5) AND (pepSeq2 is not null) AND (mgxrank &lt;= 3)" --psmfdr=100 --pepfdr=100 --proteinfdr=100 --linkfdr=100 --ppifdr=100 --csvOutDir=/data/rappstore/new_storage/fschimweg/xiSearch/myco-dss --csvBaseName=14107 --connection=jdbc:postgresql://xidb.bioanalytik.tu-berlin.de:5432/xi3 --user=bio_user --password=bio1sTheUs3r</exec.appArgs>
+                <exec.mainClass>org.rappsilber.fdr.CommandLine</exec.mainClass>
+                <exec.appArgs></exec.appArgs>
                 <exec.vmArgs>-Dfile.encoding=UTF-8 --add-opens java.base/java.lang=ALL-UNNAMED --add-opens java.base/java.util=ALL-UNNAMED -Xmx4G</exec.vmArgs>
-                <exec.mainClass>org.rappsilber.fdr.DBinFDR</exec.mainClass>
+                <exec.workingdir></exec.workingdir>
+                <exec.executable>java</exec.executable>
             </properties>
         </action>
     </actions>

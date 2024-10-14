@@ -141,7 +141,7 @@ public class CSVinFDR extends OfflineFDR {
         ret.add(7, "exp mass");
         ret.add(8, "exp fractionalmass");
         ret.add(9, "match charge");
-        ret.add(10,  "match mass");
+        ret.add(10, "match mass");
         ret.add(11, "match fractionalmass");
         return ret;
     }
