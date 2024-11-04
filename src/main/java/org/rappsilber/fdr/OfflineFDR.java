@@ -1874,6 +1874,7 @@ public abstract class OfflineFDR {
         PrintWriter psmLinearOut = null;
         String outName = path + "/" + baseName + "_INPUT" + extension;
         PrintWriter psmOut = null;
+        PrintWriter xiviewOut = null;
         
         if (writeAll) {
             Logger.getLogger(this.getClass().getName()).log(Level.INFO, "Write input to " + outName);
@@ -1893,9 +1894,12 @@ public abstract class OfflineFDR {
         }
         
         outName = path + "/" + baseName + "_CSM" + extension;
+        String xiviewName = path + "/" + baseName + "_xiVIEW" + extension;
         
         if (!csvSummaryOnly) {
             Logger.getLogger(this.getClass().getName()).log(Level.INFO, "Write CSM-results to " + outName);
+            xiviewOut = new PrintWriter(xiviewName);
+            xiviewOut.println(getXiViewHeader());
             psmOut = new PrintWriter(outName);
             String header = csvFormater.valuesToString(getPSMHeader());
             psmOut.println(header);
@@ -1938,13 +1942,17 @@ public abstract class OfflineFDR {
 
         for (PSM pp : psms) {
             fdrPSMGroupCounts.add(pp.getFDRGroup());
-            String line = csvFormater.valuesToString(getPSMOutputLine(pp));
+            
             if (!csvSummaryOnly) {
+                String line = csvFormater.valuesToString(getPSMOutputLine(pp));
+
                 if (pp.isLinear()) {
                     psmLinearOut.println(line);
                 } else if (pp.isNonCovalent()) {
                     psmNAPSOut.println(line);
                 } else {
+                    String xiViewline = csvFormater.valuesToString(getXiViewOutputLine(pp));
+                    xiviewOut.println(xiViewline);
                     psmOut.println(line);
                 }
             }
@@ -4166,7 +4174,7 @@ public abstract class OfflineFDR {
             "peptide pair id", "link id", "ppi id", "info"}));
         return ret;
     }
-
+    
     protected ArrayList<String> getXLPepsHeader() {
         ArrayList<String> ret = new ArrayList<String>(RArrayUtils.toCollection(new String[]{
             "PeptidePairID",
@@ -4210,6 +4218,138 @@ public abstract class OfflineFDR {
             ret.add(r);
         }
         return ret;
+    }
+    
+
+    protected ArrayList<String> getXiViewHeader() {
+        ArrayList<String> ret = new ArrayList<String>(RArrayUtils.toCollection(new String[]{
+            "PSMID",
+            "RunName",
+            "ScanNumber",
+            "PeakListFileName",
+            "ScanId",
+            "Protein1",
+            "Name1",
+            "Description1",
+            "Decoy 1",
+            "Protein2",
+            "Name2",
+            "Description2",
+            "Decoy 2",
+            "PepSeq1",
+            "PepSeq2",
+            "PepPos1",
+            "PepPos2",
+            "LinkPos1",
+            "LinkPos2",
+            "ProteinSite1",
+            "ProteinSite2",
+            "Crosslinker",
+            "CrosslinkerModMass",
+            "Charge",
+            "ExpMz",
+            "CalcMz",
+            "Score"
+        }));
+        for (String r : foundRuns.keySet()) {
+            ret.add(r);
+        }
+        return ret;
+    }
+
+    protected String getXiViewHeader(String seperator) {
+        return RArrayUtils.toString(getXiViewHeader(), seperator);
+    }
+
+    protected ArrayList<String> getXiViewOutputLine(PSM pp) {
+        
+        PeptidePair pep = pp.getFdrPeptidePair();
+        ProteinGroupLink l = pep != null ? pep.getFdrLink() : null;
+        ProteinGroupPair ppi = l != null ? l.getFdrPPI() : null;
+
+        Peptide pep1 = pp.getPeptide1();
+        Peptide pep2 = pp.getPeptide2();
+
+        ProteinGroup pg1 = pep1.getProteinGroup();
+        ProteinGroup pg2 = pep2.getProteinGroup();
+
+        int pepLink1 = pp.getPeptideLinkSite1();
+        int pepLink2 = pp.getPeptideLinkSite2();
+
+        int pepLength1 = pp.getPeptideLength1();
+        int pepLength2 = pp.getPeptideLength2();
+
+        String pepSeq1 = getPeptideSequence(pep1);
+        String pepSeq2 = getPeptideSequence(pep2);
+
+        StringBuilder sbaccessions = new StringBuilder();
+        StringBuilder sbnames = new StringBuilder();
+        StringBuilder sbdescriptions = new StringBuilder();
+        StringBuilder sbPositions = new StringBuilder();
+        StringBuilder sbProtLink = new StringBuilder();
+        peptidePositionsToPSMOutString(pep1.getPositions(), sbaccessions, sbnames, sbdescriptions, sbPositions, sbProtLink, pepLink1);
+        String accessions1 = sbaccessions.toString();
+        String names1 = sbnames.toString();
+        String descriptions1 = sbdescriptions.toString();
+        String positons1 = sbPositions.toString();
+        String proteinLinkPositons1 = pepLink1 > 0 ? sbProtLink.toString() : "";
+
+        sbaccessions.setLength(0);
+        sbnames.setLength(0);
+        sbdescriptions.setLength(0);
+        sbPositions.setLength(0);
+        sbProtLink.setLength(0);
+        peptidePositionsToPSMOutString(pep2.getPositions(), sbaccessions, sbnames, sbdescriptions, sbPositions, sbProtLink, pepLink2);
+        String accessions2 = sbaccessions.toString();
+        String names2 = sbaccessions.toString();
+        String descriptions2 = sbdescriptions.toString();
+        String positons2 = sbPositions.toString();
+        String proteinLinkPositons2 = pepLink2 > 0 ? sbProtLink.toString() : "";
+
+        String run = pp.getRun();
+        String scan = pp.getScan();
+        if (run == null) {
+            run = "";
+        }
+        if (scan == null) {
+            scan = "";
+        }
+        ArrayList<String> ret = new ArrayList<>(37);
+        ret.add(pp.getPsmID());
+        ret.add(run);
+        ret.add(scan);
+        ret.add(pp.getPeakListName() == null ? "" : pp.getPeakListName());
+        ret.add(pp.getFileScanIndex() == null ? "" : i2s(pp.getFileScanIndex()));
+        ret.add(accessions1);
+        ret.add(pep1.isDecoy() ? "decoy" : names1 );
+        ret.add(pep1.isDecoy() ? "decoy" : descriptions1);
+        ret.add(Boolean.toString(pep1.isDecoy()));
+        ret.add(accessions2);
+        ret.add(pep2.isDecoy() ? "decoy" : names2);
+        ret.add(pep2.isDecoy() ? "decoy" : descriptions2);
+        ret.add(Boolean.toString(pep2.isDecoy()));
+        ret.add(pepSeq1);
+        ret.add(pepSeq2);
+        ret.add(positons1);
+        ret.add(positons2);
+        //ret.add((pepLength1 == 0 ? "" : i2s(pepLength1)));
+        //ret.add((pepLength2 == 0 ? "" : i2s(pepLength2)));
+        ret.add(i2s(pepLink1));
+        ret.add(i2s(pepLink2));
+        ret.add(proteinLinkPositons1);
+        ret.add(proteinLinkPositons2);
+        ret.add(pp.getCrosslinker());
+        ret.add(Double.isNaN(pp.getCrosslinkerModMass()) ? "" : d2s(pp.getCrosslinkerModMass()));
+        ret.add(i2s(pp.getCharge()));
+        ret.add(d2s(pp.getExperimentalMZ()));
+        ret.add(d2s((pp.getCalcMass()/pp.getCharge()) + rappsilber.utils.Util.PROTON_MASS));
+        ret.add(d2s(pp.getScore()));
+
+        return ret;
+    }
+    
+    protected String getXiViewOutputLine(PSM psm, String seperator) {
+        return RArrayUtils.toString(getXiViewOutputLine(psm), seperator);
     }
 
     protected String getXLPepsHeader(String seperator) {
