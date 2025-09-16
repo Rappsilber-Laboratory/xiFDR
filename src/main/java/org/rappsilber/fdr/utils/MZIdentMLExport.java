@@ -750,6 +750,7 @@ public class MZIdentMLExport {
                                 xlModParam.setCv(psiCV);
                                 xlModParam.setValue(Integer.toString(xlModId));
                                 mod.getCvParam().add(xlModParam);
+                                mod.getCvParam().addAll(stubs);
                                 mzidPep.getModification().add(mod);
                                 link = pp.getPeptideLinkSite(pi+1);
                                 mod = getCrosslinkerReceptorModification(link, 0, fragmentIsMono);
@@ -759,6 +760,7 @@ public class MZIdentMLExport {
                                 xlModParam.setCv(psiCV);
                                 xlModParam.setValue(Integer.toString(xlModId));
                                 mod.getCvParam().add(xlModParam);
+                                mod.getCvParam().addAll(stubs);
                                 mod.getCvParam().addAll(stubs);
                                 mzidPep.getModification().add(mod);
                             }
@@ -772,6 +774,7 @@ public class MZIdentMLExport {
                                 xlModParam.setCv(psiCV);
                                 xlModParam.setValue(Integer.toString(xlModId));
                                 mod.getCvParam().add(xlModParam);
+                                mod.getCvParam().addAll(stubs);
                                 mzidPep.getModification().add(mod);
                             }
                         }
@@ -2410,6 +2413,7 @@ public class MZIdentMLExport {
         }
         searchMod.getCvParam().add(modParam);
         searchMod.getCvParam().addAll(stubs);
+        searchModAcceptor.getCvParam().addAll(stubs);
         
         if (crosslinker instanceof rappsilber.ms.crosslinker.AminoAcidRestrictedCrossLinker) {
             HashSet<String> modsRes = new HashSet<>();
@@ -2479,6 +2483,7 @@ public class MZIdentMLExport {
             searchModCTermAcceptor.getResidues().add(".");
             searchModCTermAcceptor.getSpecificityRules().add(sr);
             searchModCTermAcceptor.getCvParam().add(makeCvParam(getCrosslinkedAcceptorModAcc(), crosslinkedAcceptorModName, psiCV, ""+countCrossLinker));
+            searchModCTermAcceptor.getCvParam().addAll(stubs);
             ret.add(searchModCTermAcceptor);
         }
 
@@ -2501,6 +2506,7 @@ public class MZIdentMLExport {
             searchModNTermAcceptor.getResidues().add(".");
             searchModNTermAcceptor.getSpecificityRules().add(sr);
             searchModNTermAcceptor.getCvParam().add(makeCvParam(getCrosslinkedAcceptorModAcc(), crosslinkedAcceptorModName, psiCV, ""+countCrossLinker));
+            searchModNTermAcceptor.getCvParam().addAll(stubs);
             ret.add(searchModNTermAcceptor);
         }
         

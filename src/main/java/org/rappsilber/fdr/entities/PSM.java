@@ -663,7 +663,7 @@ public class PSM extends AbstractFDRElement<PSM> {
      */
     public void setFDRGroup() {
         
-        fdrGroup = PeptidePair.getFDRGroup(peptide1, peptide2, isLinear(), isInternal, this.getNegativeGrouping(), getPositiveGrouping(),isNonCovalent ? "NonCovalent":"");
+        fdrGroup = PeptidePair.getFDRGroup(peptide1, peptide2, isLinear(), isInternal, this.getNegativeGrouping(), getPositiveGrouping(),isNonCovalent ? "NonCovalent":"");        
         String ag = RArrayUtils.toString(getAdditionalFDRGroups(), " ");
         if (!ag.isEmpty())
             fdrGroup = ag + " " + fdrGroup;

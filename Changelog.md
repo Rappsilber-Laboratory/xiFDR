@@ -1,4 +1,10 @@
 
+2.3.9
+
+* Write out mzIdentML crosslinker stub information to donor and acceptor
+* no need to restart anymore - should produce valid UTF-8 mzIdentML without it
+* db reading fix for large scan_ids
+
 2.3.8
 
 * Write out crosslinker stub information to mzIdentML
