@@ -870,7 +870,11 @@ public class MZIdentMLExport {
                             dbSeq = new DBSequence();
                             foundProts.put(protKey, dbSeq);
                             dbSeq.setAccession(prot.getAccession());
-                            dbSeq.setName(prot.isDecoy() ? "decoy" : prot.getName());
+                            if (prot.isDecoy()) {
+                                dbSeq.setName("decoy");
+                            } else {
+                                dbSeq.setName(prot.getName() == null || prot.getName().trim().length() == 0 ? prot.getAccession() : prot.getName());
+                            }
                             if (prot.getDescription() != null  && prot.getDescription().trim().length()>0)
                                 dbSeq.getCvParam().add(makeCvParam("MS:1001088", "protein description", psiCV,prot.getDescription()));
                             if (prot.getSize() >0)

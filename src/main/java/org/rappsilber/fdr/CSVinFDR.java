@@ -34,6 +34,7 @@ import java.util.regex.Pattern;
 import org.rappsilber.data.csv.ColumnAlternatives;
 import org.rappsilber.data.csv.CsvParser;
 import org.rappsilber.data.csv.condition.CsvCondition;
+import org.rappsilber.data.csv.condition.CsvConditionParser;
 import org.rappsilber.fdr.entities.PSM;
 import org.rappsilber.fdr.entities.Protein;
 import org.rappsilber.fdr.result.FDRResult;
@@ -55,6 +56,7 @@ public class CSVinFDR extends OfflineFDR {
     private Locale numberlocale;// = Locale.getDefault();
     private Character quote;
     private String forwardPattern = null;
+    private String filter = null;
     public static String[][] DEFAULT_COLUMN_MAPPING=new String[][]{
         {"matchid", "spectrummatchid", "match id", "spectrum match id", "psmid"},
         {"isdecoy", "is decoy", "reverse", "decoy"},
@@ -177,7 +179,12 @@ public class CSVinFDR extends OfflineFDR {
     }
     
     public boolean readCSV(File f) throws FileNotFoundException, IOException, ParseException  {
-        return readCSV(CsvParser.guessCsv(f, 50), null);
+        if (this.filter == null) {
+            return readCSV(CsvParser.guessCsv(f, 50), null);
+        } 
+        CsvParser csv = CsvParser.guessCsv(f, 50);
+        CsvCondition c = new CsvConditionParser(csv).parse(filter);
+        return readCSV(csv, c);
     }
     
     
@@ -747,7 +754,8 @@ public class CSVinFDR extends OfflineFDR {
                 + "--forward=X              additional collumns to be forwarded\n "
                 + "--quote                  how are text fields qoted\n"
                 + "                         e.g. each field that contains the\n"
-                + "                         delimiter needs to be in quotes\n"
+                + "--filter                 text filter for what rows to read in. E.g.:\n"
+                + "                         \"[crosslinker] = 'BS3'\" AND [Charge] >= 4\"\n"
                 + "--decoy-prefix           prefix used to denote decoy accessions\n"
                 + "                         if empty RAN_, REV_ and DECOY: are tried\n";
         
@@ -803,6 +811,8 @@ public class CSVinFDR extends OfflineFDR {
                     Logger.getLogger(CSVinFDR.class.getName()).log(Level.SEVERE, "could not set the locale "+ locale);
                     System.exit(-1);
                 }
+            } else if(arg.toLowerCase().startsWith("--filter=")) {
+                this.filter = arg.substring("--inputlocale=".length());
             } else if(arg.toLowerCase().startsWith("--decoy-prefix=")) {
                 String prefix = arg.substring("--decoy-prefix=".length());
                 if (!prefix.toLowerCase().trim().contentEquals("auto")) {

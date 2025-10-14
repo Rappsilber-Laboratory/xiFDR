@@ -1,4 +1,10 @@
 
+2.3.10
+
+* new csv argument --filter
+* GUI filter can be switched between simple  text field and GUI input
+* mzIdentML protein name will be set to accession if no name is given
+
 2.3.9
 
 * Write out mzIdentML crosslinker stub information to donor and acceptor
