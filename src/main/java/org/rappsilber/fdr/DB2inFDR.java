@@ -48,6 +48,7 @@ import org.rappsilber.fdr.utils.CalculateWriteUpdate;
 import org.rappsilber.fdr.utils.MZIdentMLExport;
 import org.rappsilber.fdr.utils.MZIdentMLOwner;
 import org.rappsilber.fdr.utils.MaximisingStatus;
+import org.rappsilber.fdr.DBUUID;
 import rappsilber.ms.sequence.AminoAcid;
 import rappsilber.ms.sequence.Peptide;
 import rappsilber.ms.sequence.Sequence;
@@ -1951,7 +1952,7 @@ import rappsilber.ms.statistics.utils.UpdateableLong;
             }
             // write new resultset
             if (FDRresultset == null) {
-                id = UUID.randomUUID();
+                id = DBUUID.dbUUID();
                 autocommitAdmin = setupAdminResultSet(name, id, notes, userID);
             } else {
                 id = FDRresultset;
