@@ -3,7 +3,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>org.rappsilberlab</groupId>
     <artifactId>xiFDR</artifactId>
-    <version>2.3.10</version>
+    <version>2.4</version>
     <packaging>jar</packaging>
     <dependencies>
         <dependency>
@@ -69,16 +69,6 @@
 		<version>1.2.0</version>
 	</dependency>
         <dependency>
-            <groupId>${project.groupId}</groupId>
-            <artifactId>CSV</artifactId>
-            <version>1.0-SNAPSHOT</version>
-        </dependency>
-        <dependency>
-            <groupId>${project.groupId}</groupId>
-            <artifactId>RUtils</artifactId>
-            <version>1.0-SNAPSHOT</version>
-        </dependency>
-        <dependency>
             <groupId>net.sourceforge.csvjdbc</groupId>
             <artifactId>csvjdbc</artifactId>
             <version>1.0.37</version>
@@ -100,19 +90,9 @@
             <version>1.1.1</version>
 	</dependency>
         <dependency>
-            <groupId>rappsilber</groupId>
-            <artifactId>xiSEARCH</artifactId>
-            <version>1.8.7</version>
-        </dependency>
-        <dependency>
             <groupId>uk.ac.ebi.jmzidml</groupId>
             <artifactId>jmzidentml</artifactId>
             <version>1.2.13-lf</version>
-        </dependency>
-        <dependency>
-            <groupId>org.rappsilber</groupId>
-            <artifactId>XLMOD</artifactId>
-            <version>1.1</version>
         </dependency>
         <dependency>
             <groupId>com.sun.xml.bind</groupId>
@@ -128,6 +108,44 @@
             <groupId>com.sun.xml.bind</groupId>
             <artifactId>jaxb-impl</artifactId>
             <version>2.3.1</version>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>RUtils</artifactId>
+            <version>1.0-SNAPSHOT</version>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>CSV</artifactId>
+            <version>1.0-SNAPSHOT</version>
+        </dependency>
+        <dependency>
+            <groupId>org.rappsilber</groupId>
+            <artifactId>XLMOD</artifactId>
+            <version>1.1</version>
+        </dependency>
+        <dependency>
+            <groupId>rappsilber</groupId>
+            <artifactId>xiSEARCH</artifactId>
+            <version>1.8.13</version>
+        </dependency>
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter-api</artifactId>
+            <version>5.8.1</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter-engine</artifactId>
+            <version>5.8.1</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter-params</artifactId>
+            <version>5.8.1</version>
+            <scope>test</scope>
         </dependency>
     </dependencies>
     <build>
@@ -160,7 +178,22 @@
                             </configuration>
                         </execution>
                     </executions>
-                </plugin-->                		
+                </plugin-->
+	    <plugin>
+	        <groupId>org.apache.maven.plugins</groupId>
+	        <artifactId>maven-compiler-plugin</artifactId>
+	        <version>3.14.0</version>
+	     <configuration>
+	      <compilerArgs>
+	       <arg>-Xlint</arg>
+	      </compilerArgs>
+	     </configuration>
+	    </plugin>
+	    <plugin>
+	        <groupId>org.apache.maven.plugins</groupId>
+	        <artifactId>maven-surefire-plugin</artifactId>
+	        <version>3.1.2</version>
+	    </plugin>
 	</plugins>
       <resources>
         <resource>
@@ -181,9 +214,9 @@
     </repositories>
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <maven.compiler.source>1.7</maven.compiler.source>
-        <maven.compiler.target>1.7</maven.compiler.target>
+        <maven.compiler.source>8</maven.compiler.source>
+        <maven.compiler.target>8</maven.compiler.target>
     </properties>
     <description>Application for FDR estimation cross-linking massspectrometry data </description>
-    <name>xiFDR-2.3.10</name>
+    <name>xiFDR-2.4</name>
 </project>

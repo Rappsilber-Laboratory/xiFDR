@@ -124,6 +124,10 @@ public class PeptidePair extends AbstractFDRElement<PeptidePair> {//implements C
      */
     private boolean isInternal = false;
     /**
+     * self-link where both peptides overlap in sequence on the protein
+     */
+    private boolean isOverlapping = false;
+    /**
      * only one peptide
      */
     protected boolean isLinear = false;
@@ -223,6 +227,7 @@ public class PeptidePair extends AbstractFDRElement<PeptidePair> {//implements C
         this.isLinear = psm.isLinear();
         this.isLoop = psm.isLoop();
         this.isInternal = psm.isInternal();
+        this.isOverlapping = psm.isOverlapping();
         addFDRGroups(psm);
         //this.score = psm.getScore();
         isNonCovalent = psm.isNonCovalent();
@@ -297,6 +302,11 @@ public class PeptidePair extends AbstractFDRElement<PeptidePair> {//implements C
         
         if (p.isInternal && !isInternal) {
             isInternal = true;
+            setFDR = true;
+        }
+
+        if (p.isOverlapping && !isOverlapping) {
+            isOverlapping = true;
             setFDR = true;
         }
 
@@ -748,8 +758,8 @@ public class PeptidePair extends AbstractFDRElement<PeptidePair> {//implements C
      * @param specialCase
      * @return
      */
-    public static String getFDRGroup(Peptide pep1, Peptide pep2, boolean isLinear, boolean isInternal, Collection<String> negativeGroups, Collection<String> positiveGroups, String groupExt) {
-        String group = (isLinear ? "linear" : (isInternal ? "Self" : "Between"));
+    public static String getFDRGroup(Peptide pep1, Peptide pep2, boolean isLinear, boolean isInternal, boolean isOverlapping, Collection<String> negativeGroups, Collection<String> positiveGroups, String groupExt) {
+        String group = (isLinear ? "linear" : (isInternal ? (isOverlapping ? "Self Overlapping" : "Self") : "Between"));
         groupExt = " " + groupExt;
         if (negativeGroups != null && negativeGroups.size() > 0) {
             ArrayList<String> ng = new ArrayList<>(negativeGroups);
@@ -821,7 +831,7 @@ public class PeptidePair extends AbstractFDRElement<PeptidePair> {//implements C
      */
     public void setFDRGroup() {
         String sc = null;
-        fdrGroup = getFDRGroup(peptide1, peptide2, isLinear, isInternal, m_negativeGroups, m_positiveGroups, isNonCovalent ? "NonCovalent" : "");
+        fdrGroup = getFDRGroup(peptide1, peptide2, isLinear, isInternal, isOverlapping, m_negativeGroups, m_positiveGroups, isNonCovalent ? "NonCovalent" : "");
         String ag = RArrayUtils.toString(getAdditionalFDRGroups(), " ");
         if (!ag.isEmpty())
             fdrGroup = ag + " " + fdrGroup;
@@ -851,6 +861,13 @@ public class PeptidePair extends AbstractFDRElement<PeptidePair> {//implements C
      */
     public void setLinear(boolean isLinear) {
         this.isLinear = isLinear;
+    }
+
+    /**
+     * is this a self-link where the two peptides overlap in sequence on the protein
+     */
+    public boolean isOverlapping() {
+        return isOverlapping;
     }
 
     /**

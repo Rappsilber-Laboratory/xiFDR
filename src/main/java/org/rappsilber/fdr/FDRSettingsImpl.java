@@ -33,7 +33,8 @@ public class FDRSettingsImpl implements FDRSettings {
     double ProteinGroupLinkFDR = 0.05;
     double ProteinGroupPairFDR = 1;
     int BoostingSteps = 4;
-    boolean BoostBetween = false;
+    FDRSettings.BoostMode boostMode = FDRSettings.BoostMode.NONE;
+    FDRSettings.CrosslinkType crosslinkTypeFilter = FDRSettings.CrosslinkType.ALL;
     boolean LinkDirectional;
     boolean PPIDirectional;
     boolean PSMDirectional;
@@ -185,13 +186,23 @@ public class FDRSettingsImpl implements FDRSettings {
     }
 
     @Override
-    public boolean getBoostBetween() {
-        return BoostBetween;
+    public FDRSettings.BoostMode getBoostMode() {
+        return boostMode;
     }
 
     @Override
-    public void setBoostBetween(boolean between) {
-        BoostBetween=between;
+    public void setBoostMode(FDRSettings.BoostMode mode) {
+        boostMode = mode;
+    }
+
+    @Override
+    public FDRSettings.CrosslinkType getCrosslinkTypeFilter() {
+        return crosslinkTypeFilter;
+    }
+
+    @Override
+    public void setCrosslinkTypeFilter(FDRSettings.CrosslinkType t) {
+        this.crosslinkTypeFilter = t;
     }
 
     @Override
@@ -320,7 +331,8 @@ public class FDRSettingsImpl implements FDRSettings {
         to.setReportFactor(from.getReportFactor());
         to.doOptimize(from.doOptimize());
         to.setFilterToUniquePSM(from.filterToUniquePSM());
-        to.setBoostBetween(from.getBoostBetween());
+        to.setBoostMode(from.getBoostMode());
+        to.setCrosslinkTypeFilter(from.getCrosslinkTypeFilter());
         to.boostLinks(from.boostLinks());
         to.boostPSMs(from.boostPSMs());
         to.boostPeptidePairs(from.boostPeptidePairs());

@@ -825,7 +825,7 @@
                                       <Component id="txtSumInput" max="32767" attributes="0"/>
                                   </Group>
                                   <EmptySpace max="-2" attributes="0"/>
-                                  <Component id="jPanel9" max="32767" attributes="0"/>
+                                  <Component id="jpSummaryCounts" max="32767" attributes="0"/>
                                   <EmptySpace max="-2" attributes="0"/>
                               </Group>
                           </Group>
@@ -839,7 +839,7 @@
                                           <EmptySpace max="-2" attributes="0"/>
                                           <Component id="txtSumInput" min="-2" max="-2" attributes="0"/>
                                       </Group>
-                                      <Component id="jPanel9" alignment="0" min="-2" max="-2" attributes="0"/>
+                                      <Component id="jpSummaryCounts" alignment="0" min="-2" max="-2" attributes="0"/>
                                   </Group>
                                   <EmptySpace max="32767" attributes="0"/>
                               </Group>
@@ -854,7 +854,7 @@
                         </Component>
                         <Component class="javax.swing.JTextField" name="txtSumInput">
                         </Component>
-                        <Container class="javax.swing.JPanel" name="jPanel9">
+                        <Container class="javax.swing.JPanel" name="jpSummaryCounts">
                           <Properties>
                             <Property name="border" type="javax.swing.border.Border" editor="org.netbeans.modules.form.editors2.BorderEditor">
                               <Border info="org.netbeans.modules.form.compat2.border.TitledBorderInfo">

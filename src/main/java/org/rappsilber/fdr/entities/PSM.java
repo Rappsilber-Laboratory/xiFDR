@@ -216,6 +216,11 @@ public class PSM extends AbstractFDRElement<PSM> {
      * is this a cross-link of consecutive peptides
      */
     private Boolean isConsecutive;
+
+    /**
+     * is this a self-link where the two peptides overlap in sequence on the protein
+     */
+    private Boolean m_isOverlapping;
     
 
     /**
@@ -663,7 +668,7 @@ public class PSM extends AbstractFDRElement<PSM> {
      */
     public void setFDRGroup() {
         
-        fdrGroup = PeptidePair.getFDRGroup(peptide1, peptide2, isLinear(), isInternal, this.getNegativeGrouping(), getPositiveGrouping(),isNonCovalent ? "NonCovalent":"");        
+        fdrGroup = PeptidePair.getFDRGroup(peptide1, peptide2, isLinear(), isInternal, isOverlapping(), this.getNegativeGrouping(), getPositiveGrouping(), isNonCovalent ? "NonCovalent" : "");
         String ag = RArrayUtils.toString(getAdditionalFDRGroups(), " ");
         if (!ag.isEmpty())
             fdrGroup = ag + " " + fdrGroup;
@@ -1173,7 +1178,40 @@ public class PSM extends AbstractFDRElement<PSM> {
     public void setConsecutive(boolean isConsecutive) {
         this.isConsecutive = isConsecutive;
     }
-    
+
+    /**
+     * is this a self-link where the two peptides overlap in sequence on the protein
+     * (i.e. the peptide intervals [start, start+len) share at least one residue)
+     */
+    public boolean isOverlapping() {
+        if (m_isOverlapping == null) {
+            if (!isInternal()) {
+                m_isOverlapping = false;
+            } else {
+                HashMap<Protein, HashSet<Integer>> pep1pos = this.peptide1.getPositions();
+                int peplen1 = this.peptide1.length;
+                HashMap<Protein, HashSet<Integer>> pep2pos = this.peptide2.getPositions();
+                int peplen2 = this.peptide2.length;
+                m_isOverlapping = false;
+                outer:
+                for (Map.Entry<Protein, HashSet<Integer>> e : pep1pos.entrySet()) {
+                    HashSet<Integer> pos2 = pep2pos.get(e.getKey());
+                    if (pos2 != null) {
+                        for (int p1 : e.getValue()) {
+                            for (int p2 : pos2) {
+                                if (p1 < p2 + peplen2 && p2 < p1 + peplen1) {
+                                    m_isOverlapping = true;
+                                    break outer;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        return m_isOverlapping;
+    }
+
     String ukey = null;
     public String getNonDirectionalUnifyingKey() {
         if (ukey == null) {

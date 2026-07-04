@@ -216,6 +216,57 @@ import rappsilber.ms.statistics.utils.UpdateableLong;
     // reuse the last mzidentml owner infos
     boolean lastMzIDowner = false;
     
+    public enum FDRScores{
+        CSM_FDR(false),
+        CSM_PEP(false),
+        CSM_Score,
+        PeptidePair_FDR(false),
+        PeptidePair_PEP(false),
+        PeptdePair_Score,
+        ResiduePair_FDR(false),
+        ResiduePair_PEP(false),
+        ResiduePair_Score,
+        ProteinPair_FDR(false),
+        ProteinPair_PEP(false),
+        ProteinPair_Score,
+        Protein1_FDR(false),
+        Protein1_PEP(false),
+        Protein1_Score,
+        Protein2_FDR(false),
+        Protein2_PEP(false),
+        Protein2_Score;
+        
+        private String score_name;
+        private boolean higherIsBetter;
+        
+        private FDRScores(String name, boolean higherIsBetter) {
+            this.score_name = name;
+            this.higherIsBetter = higherIsBetter;
+        }
+
+        private FDRScores(boolean higherIsBetter) {
+            this();
+            this.higherIsBetter = higherIsBetter;
+        }
+
+        private FDRScores() {
+            this.score_name = this.name().replace('_', ' ');
+            this.higherIsBetter = true;
+        }
+        
+
+        public String getName() {
+            return score_name;
+        }
+        
+        public boolean higherIsBetter() {
+            return this.higherIsBetter;
+        }
+
+    }
+    
+    private FDRScores mainScore = FDRScores.CSM_Score;
+    
 
     public String getLinkWindow(PeptidePair pp, int proteingroup, int window) {
         return "NOT IMPLEMENTED";
@@ -519,24 +570,14 @@ import rappsilber.ms.statistics.utils.UpdateableLong;
     }
 
     public DB2inFDR() {
-        resultScores.add(new Xi2Score(0, "CSM FDR", false, false));
-        resultScores.add(new Xi2Score(1, "CSM PEP", false, false));
-        resultScores.add(new Xi2Score(2, "CSM Score", false, true));
-        resultScores.add(new Xi2Score(3, "PeptidePair FDR", false, false));
-        resultScores.add(new Xi2Score(4, "PeptidePair PEP", false, false));
-        resultScores.add(new Xi2Score(5, "PeptdePair Score", false, true));
-        resultScores.add(new Xi2Score(6, "ResiduePair FDR", false, false));
-        resultScores.add(new Xi2Score(7, "ResiduePair PEP", false, false));
-        resultScores.add(new Xi2Score(8, "ResiduePair Score", true, true));
-        resultScores.add(new Xi2Score(9, "ProteinPair FDR", false, false));
-        resultScores.add(new Xi2Score(10, "ProteinPair PEP", false, false));
-        resultScores.add(new Xi2Score(11, "ProteinPair Score", false, true));
-        resultScores.add(new Xi2Score(12, "Protein1 FDR", false, false));
-        resultScores.add(new Xi2Score(13, "Protein1 PEP", false, false));
-        resultScores.add(new Xi2Score(14, "Protein1 Score", false, true));
-        resultScores.add(new Xi2Score(15, "Protein2 FDR", false, false));
-        resultScores.add(new Xi2Score(16, "Protein2 PEP", false, false));
-        resultScores.add(new Xi2Score(17, "Protein2 Score", false, true));
+        for (FDRScores score : FDRScores.values()) {
+            resultScores.add(new Xi2Score(
+                    score.ordinal(),
+                    score.getName(),
+                    mainScore == score,
+                    score.higherIsBetter()
+            ));
+        }        
     }
 
     public DB2inFDR(Connection connection) {
@@ -813,12 +854,12 @@ import rappsilber.ms.statistics.utils.UpdateableLong;
                         + "m.assumed_prec_charge AS calc_charge, \n"
                         + "m.assumed_prec_mz AS calc_mz, \n"
                         + "m.score as PSMscore, \n"
-                        + "array_agg(pp1.start) AS pepPosition1,  \n"
-                        + "array_agg(pp2.start) AS pepPosition2, \n"
+                        + "pp1agg.pepPosition1, \n"
+                        + "pp2agg.pepPosition2, \n"
                         + "CASE WHEN mp2.sequence IS NULL THEN 1 ELSE (4.0/5.0+(mp1.length/(mp1.length+mp2.length)))/2 END AS score_ratio \n"
                         + " , s.precursor_charge as exp_charge \n"
-                        + " , array_agg(pp1.protein_id) as protein1id\n"
-                        + " , array_agg(pp2.protein_id) as protein2id\n"
+                        + " , pp1agg.protein1id\n"
+                        + " , pp2agg.protein2id\n"
                         + " , pep1_id as peptide1id\n"
                         + " , pep2_id as peptide2id\n"
                         + " , r.name as run_name, s.scan_number \n"
@@ -856,70 +897,21 @@ import rappsilber.ms.statistics.utils.UpdateableLong;
                         " run r on s.run_id = r.id \n" +
                         "    INNER JOIN \n" +
                         "   modifiedpeptide mp1 on m.search_id = mp1.search_id AND m.pep1_id = mp1.id \n" +
-                        " INNER JOIN \n" +
-                        "   peptideposition pp1 on m.search_id = pp1.search_id AND m.pep1_id = pp1.mod_pep_id \n" +
                         " LEFT OUTER JOIN \n" +
                         "   modifiedpeptide mp2 on m.search_id = mp2.search_id AND m.pep2_id = mp2.id \n" +
-                        " LEFT OUTER JOIN \n" +
-                        "   peptideposition pp2 on m.search_id = pp2.search_id AND m.pep2_id = pp2.mod_pep_id  \n"
+                        " CROSS JOIN LATERAL (\n" +
+                        "   SELECT array_agg(pp1l.start) AS pepPosition1, array_agg(pp1l.protein_id) AS protein1id\n" +
+                        "   FROM peptideposition pp1l\n" +
+                        "   WHERE pp1l.search_id = m.search_id AND pp1l.mod_pep_id = m.pep1_id\n" +
+                        " ) pp1agg\n" +
+                        " LEFT JOIN LATERAL (\n" +
+                        "   SELECT array_agg(pp2l.start) AS pepPosition2, array_agg(pp2l.protein_id) AS protein2id\n" +
+                        "   FROM peptideposition pp2l\n" +
+                        "   WHERE pp2l.search_id = m.search_id AND pp2l.mod_pep_id = m.pep2_id\n" +
+                        " ) pp2agg ON true\n"
                         + " WHERE  \n"
                         + " (s.precursor_charge = m.assumed_prec_charge OR m.assumed_prec_charge < 6) \n"
                         + " AND rm.resultset_id = '" + resultset_id + "'"
-                        + " GROUP BY \n"
-                        + "m.id, \n"
-                        + "mp1.sequence, \n"
-                        + "mp1.base_sequence, \n"
-                        + "mp1.modification_ids , \n"
-                        + "mp1.modification_position , \n"
-                        + "mp2.base_sequence , \n"
-                        + "mp2.sequence , \n"
-                        + "mp2.modification_ids , \n"
-                        + "mp2.modification_position , \n"
-                        + "mp1.length , \n"
-                        + "mp2.length , \n"
-                        + "m.link_score_site1, \n"
-                        + "m.link_score_site2, \n"
-                        + "m.link_score, \n"
-                        + "m.site1 + 1 , \n"
-                        + "m.site2 + 1 , \n"
-                        + "mp1.is_decoy, \n"
-                        + "mp2.is_decoy, \n"
-                        + "m.assumed_prec_charge , \n"
-                        + "m.assumed_prec_mz , \n"
-                        + "m.score, \n"
-                        + "CASE WHEN mp2.sequence IS NULL THEN 1 ELSE (4.0/5.0+(mp1.length/(mp1.length+mp2.length)))/2 END \n"
-                        + " , s.precursor_charge  \n"
-                        + " , pep1_id \n"
-                        + " , pep2_id \n"
-                        + " , r.name, s.scan_number \n"
-                        + " , s.precursor_mz \n"
-                        + " , m.calc_mass\n"
-                        + " , m.assumed_prec_charge \n"
-                        + " , mp1.mass \n"
-                        + " , mp2.mass \n"
-                        + " , m.search_id\n"
-                        + " , ms.spectrum_id\n"
-                        + " , s.precursor_charge\n"
-                        + " , crosslinker_id\n"
-                        + " , s.scan_index\n"
-                        + " , plf.name \n"
-                        + " , scores \n"
-                        + (cPepCoverage1 == null ? "" : " , scores[" + cPepCoverage1 + " +  array_lower(scores, 1)]") + " \n"
-                        + (cPepCoverage2 == null ? "" : " , scores[" + cPepCoverage2 + "  +  array_lower(scores, 1)]") + " \n"
-                        + (cDelta == null ? "" : " , scores[" + cDelta + "  +  array_lower(scores, 1)]" ) + " \n"
-                        + " , scores[" + cPrimaryScore + " +  array_lower(scores, 1)] \n"
-                        + (cCleavCLPep1Fragmatched == null ? "" : " , scores[" + cCleavCLPep1Fragmatched +" +  array_lower(scores, 1)]::int") + "  \n"
-                        + (cCleavCLPep2Fragmatched == null ? "" : " , scores[" + cCleavCLPep2Fragmatched +" +  array_lower(scores, 1)]::int") + " \n"
-                        + (cAutoValidated == null ? "" : " , scores[" + cAutoValidated +" +  array_lower(scores, 1)] <> 0") + " \n"
-                        + " , s.precursor_intensity\n"
-                        + " , s.retention_time \n"
-                        + " , rm.link_score\n"
-                        + " , rm.link_score_site1\n"
-                        + " , rm.link_score_site2\n"
-                        + " , rm.site1\n"
-                        + " , rm.site2"
-                        + " , rm.match_group_id\n"
-                        //+ " ORDER BY scores[" + cPrimaryScore + " +  array_lower(scores, 1)] DESC
                         + ")  i \n"
                         + (searchfilter == null || searchfilter.isEmpty() ? "" : " WHERE ( " + searchfilter + " )");
 
@@ -927,9 +919,10 @@ import rappsilber.ms.statistics.utils.UpdateableLong;
                 Logger.getLogger(this.getClass().getName()).log(Level.INFO, matchQuerry);
                 if (resultset_ids.length >1)
                     Logger.getLogger(this.getClass().getName()).log(Level.INFO, "Resultset {0} of {1}", new Object[]{currentresultset+1, resultset_ids.length});
-                //getDBConnection().setAutoCommit(false);
-                Statement stm = getDBConnection().createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY);
-                stm.setFetchSize(100);
+                Connection con = getDBConnection();
+                con.setAutoCommit(false);
+                Statement stm = con.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY);
+                stm.setFetchSize(1000);
                 flagDBUsage();
                 keepConnection.set(true);
                 ResultSet rs=null;
@@ -1069,17 +1062,19 @@ import rappsilber.ms.statistics.utils.UpdateableLong;
 
                         PSM psm = null;
                         if (pepSeq2 != null && !pepSeq2.isEmpty()){
-                            for (int p = 0; p< protein1ID.length; p++) {
-                                int p1 = pepPosition1[p];
-                                long p1id = protein1ID[p];
-                                HashMap<Long,Protein> sprots = search_proteins.get(search_id.toString());
-                                Protein prot1 = sprots.get(p1id);
+                            for (int pp1 = 0; pp1< protein1ID.length; pp1++) {
+                                for (int pp2 = 0; pp2< protein2ID.length; pp2++) {
+                                    int p1 = pepPosition1[pp1];
+                                    long p1id = protein1ID[pp1];
+                                    HashMap<Long,Protein> sprots = search_proteins.get(search_id.toString());
+                                    Protein prot1 = sprots.get(p1id);
 
-                                int p2 = pepPosition2[p];
-                                long p2id = protein2ID[p];
-                                Protein prot2 = sprots.get(p2id);
+                                    int p2 = pepPosition2[pp2];
+                                    long p2id = protein2ID[pp2];
+                                    Protein prot2 = sprots.get(p2id);
 
-                                psm = setUpDBPSM(psmID, run, scan, pep1ID, pep2ID, pepSeq1, pepSeq2, peplen1, peplen2, site1, site2, isDecoy1, isDecoy2, charge, score, p1id, prot1.getAccession(), prot1.getDescription(), p2id, prot2.getAccession(), prot2.getDescription(), p1, p2, prot1.getSequence(), prot2.getSequence(), peptide1score, peptide2score, spectrum_charge, conf.xi2crosslinker.get(xl).name, pmz, calc_mass, pep1mass, pep2mass, search_id.toString(), scan_id);
+                                    psm = setUpDBPSM(psmID, run, scan, pep1ID, pep2ID, pepSeq1, pepSeq2, peplen1, peplen2, site1, site2, isDecoy1, isDecoy2, charge, score, p1id, prot1.getAccession(), prot1.getDescription(), p2id, prot2.getAccession(), prot2.getDescription(), p1, p2, prot1.getSequence(), prot2.getSequence(), peptide1score, peptide2score, spectrum_charge, conf.xi2crosslinker.get(xl).name, pmz, calc_mass, pep1mass, pep2mass, search_id.toString(), scan_id);
+                                }
                             }
                         } else {
                             String a2 = "";
@@ -1987,12 +1982,13 @@ import rappsilber.ms.statistics.utils.UpdateableLong;
     //            main_score integer NOT NULL,            
                 PreparedStatement pst  = this.m_db_connection.prepareStatement("INSERT INTO resultset (id, name, note, rstype_id, config, main_score)"
                         + " VALUES "
-                        + "(?, ?,?,?,?,0)" );
+                        + "(?, ?,?,?,?,?)" );
                 pst.setObject(1, id);
                 pst.setString(2, name);
                 pst.setString(3, notes);
                 pst.setInt(4, xifdr_rs_type);
                 pst.setString(5, summary);
+                pst.setInt(6, mainScore.ordinal());
                 pst.execute();
                 pst.close();
                 
@@ -2017,6 +2013,10 @@ import rappsilber.ms.statistics.utils.UpdateableLong;
                 pst.close();
 
                 // get the stored addition infos from the first PSM
+                for (Xi2Score s : resultScores ) {
+                    s.primary_score = s.name.contentEquals(mainScore.getName());
+                }
+                    
                 Xi2ScoreList outScores = new Xi2ScoreList(resultScores);
                 if (PSM.getOtherInfoNames().length > 0) {
                     for (String subscorename : PSM.getOtherInfoNames()) {
@@ -2042,7 +2042,7 @@ import rappsilber.ms.statistics.utils.UpdateableLong;
                 pst = this.m_db_connection.prepareStatement(resultMatchColumns.querry);
                 int batch_count=0;
                 if (within && between) {
-                    for (PSM psm: result.psmFDR.filteredResults()) {
+                    for (PSM psm: result.getPsmFDR().filteredResults()) {
                         if (!psm.isLinear()) {
                             addPSMtoBatch(pst, id, psm, outScores, result);
                             if (++batch_count % 1000 == 0) {
@@ -2050,7 +2050,7 @@ import rappsilber.ms.statistics.utils.UpdateableLong;
                             }
                         }
                     }
-                    for (PSM psm: result.psmFDR.filteredResults()) {
+                    for (PSM psm: result.getPsmFDR().filteredResults()) {
                         if (psm.isLinear()) {
                             addPSMtoBatch(pst, id, psm, outScores, result);
                             if (++batch_count % 1000 == 0) {
@@ -2059,7 +2059,7 @@ import rappsilber.ms.statistics.utils.UpdateableLong;
                         }
                     }
                 } else if (within) {
-                    for (PSM psm: result.psmFDR.filteredResults()) {
+                    for (PSM psm: result.getPsmFDR().filteredResults()) {
                         if (!psm.isBetween()) {
                             addPSMtoBatch(pst, id, psm, outScores, result);
                             if (++batch_count % 1000 == 0) {
@@ -2068,7 +2068,7 @@ import rappsilber.ms.statistics.utils.UpdateableLong;
                         }
                     }
                 } else if (between) {
-                    for (PSM psm: result.psmFDR.filteredResults()) {
+                    for (PSM psm: result.getPsmFDR().filteredResults()) {
                         if (psm.isBetween()) {
                             addPSMtoBatch(pst, id, psm, outScores, result);
                             if (++batch_count % 1000 == 0) {
@@ -2167,9 +2167,9 @@ import rappsilber.ms.statistics.utils.UpdateableLong;
         pst.setObject(resultMatchColumns.search_id, UUID.fromString(psm.getSearchID()));
         // assemble scores
         Double[] scores = new Double[outScores.size()];
-        PeptidePair pp = result.peptidePairFDR.filteredGet(psm.getPeptidePair());
-        ProteinGroupLink pgl = result.proteinGroupLinkFDR.filteredGet(pp.getLink());
-        ProteinGroupPair pgp = pgl == null ? null : result.proteinGroupPairFDR.filteredGet(pgl.getProteinGroupPair());;
+        PeptidePair pp = result.getPeptidePairFDR().filteredGet(psm.getPeptidePair());
+        ProteinGroupLink pgl = result.getProteinGroupLinkFDR().filteredGet(pp.getLink());
+        ProteinGroupPair pgp = pgl == null ? null : result.getProteinGroupPairFDR().filteredGet(pgl.getProteinGroupPair());;
         ProteinGroup pg1 = psm.getFdrProteinGroup1();
         ProteinGroup pg2 = psm.getFdrProteinGroup2();
         
@@ -2272,6 +2272,23 @@ import rappsilber.ms.statistics.utils.UpdateableLong;
                     "Some trouble combining non xi2 database searches. "
                             + "You Could try to read them in the other way around. "
                             + "mzIdenML export might not work correctly.");
+        }
+    }
+
+    /**
+     * @return the mainScore
+     */
+    public String getMainScore() {
+        return mainScore.getName();
+    }
+
+    /**
+     * @param mainScore the mainScore to set
+     */
+    public void setMainScore(String mainScore) {
+        for (FDRScores s  : FDRScores.values()) {
+            if (s.getName().contentEquals(mainScore))
+                this.mainScore = s;
         }
     }
 }

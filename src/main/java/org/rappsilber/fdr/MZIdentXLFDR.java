@@ -656,7 +656,7 @@ public class MZIdentXLFDR extends OfflineFDR {
 //        }
         
         
-        for (PSM psm : result.psmFDR) {
+        for (PSM psm : result.getPsmFDR()) {
             PeptidePair pp = psm.getFdrPeptidePair();
             if (pp != null) {
                 if (pp.isLinear()) {

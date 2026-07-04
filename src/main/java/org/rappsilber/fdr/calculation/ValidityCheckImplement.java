@@ -52,12 +52,18 @@ public class ValidityCheckImplement implements CheckValid {
             return "not enough TT";
         }
 
-        if ((info.targteFDR < 1 && info.resultTT < info.resultDD) || info.resultTD < info.resultDD) {
-            return "to many DD";
-        }
-
-        if ((info.resultDD + 0.00001) / (info.resultTD + 0.0001) > 1 - factor) {
-            return "resolution to bad (TD vs DD)";
+        if (info.useAdditiveFDR) {
+            // overlap case: FDR = (TD+DD)/TT; TD≈0 is expected, so DD>TD is normal
+            if (info.targteFDR < 1 && info.resultTT < info.resultDD) {
+                return "to many DD";
+            }
+        } else {
+            if ((info.targteFDR < 1 && info.resultTT < info.resultDD) || info.resultTD < info.resultDD) {
+                return "to many DD";
+            }
+            if ((info.resultDD + 0.00001) / (info.resultTD + 0.0001) > 1 - factor) {
+                return "resolution to bad (TD vs DD)";
+            }
         }
 
         if (info.resultTT * info.targteFDR < factor * 10) {

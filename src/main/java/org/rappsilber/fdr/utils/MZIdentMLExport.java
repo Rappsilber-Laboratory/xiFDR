@@ -577,7 +577,7 @@ public class MZIdentMLExport {
         
         
         // join PSMs by scans
-        for (PSM ipsm : result.input) {
+        for (PSM ipsm : result.getInput()) {
             for (PSM p : ipsm.getRepresented()) {
                 PSM psm = (PSM)p;
                 String spectrumID = psm.getScan() + " - " + psm.getRun();
@@ -597,7 +597,7 @@ public class MZIdentMLExport {
         HashMap<ProteinAmbiguityGroup,HashMap<ProteinAmbiguityGroup,Integer>> protPair2ID = new HashMap<ProteinAmbiguityGroup,HashMap<ProteinAmbiguityGroup,Integer>>();
         HashMap<ProteinGroupPair,CvParam> protein_pair_globa_fdr_term1 = new HashMap<>();
         HashMap<ProteinGroupPair,CvParam> protein_pair_globa_fdr_term2 = new HashMap<>();
-        int factor = (int) Math.pow(10,Math.round(Math.log10(fdrResult.proteinGroupLinkFDR.size()+1)+0.5));
+        int factor = (int) Math.pow(10,Math.round(Math.log10(fdrResult.getProteinGroupLinkFDR().size()+1)+0.5));
         
         for (ArrayList<PSM> psms : allSpectra.values()) {
             // Get the next spectrum.
@@ -628,7 +628,7 @@ public class MZIdentMLExport {
             HashMap<String,SpectraData> runData = new HashMap<String,SpectraData>();
             boolean firstSpecPSM = true;
             for (PSM psm : psms) {
-                boolean passed = result.psmFDR.filteredContains(psm) || (psm.getPartOfUniquePSM() != null && psm.getPartOfUniquePSM() == psm && result.psmFDR.filteredContains(psm.getPartOfUniquePSM()));
+                boolean passed = result.getPsmFDR().filteredContains(psm) || (psm.getPartOfUniquePSM() != null && psm.getPartOfUniquePSM() == psm && result.getPsmFDR().filteredContains(psm.getPartOfUniquePSM()));
                 xlModId++;
                 org.rappsilber.fdr.entities.PeptidePair peppair = psm.getPeptidePair();
                 
@@ -854,7 +854,7 @@ public class MZIdentMLExport {
                         pagList.add(pag);
                         pg2Pag.put(pg, pag);
                         groupIsNew = true;
-                        CvParam cvp = makeCvParam("MS:1002415", "protein group passes threshold", psiCV,""+fdrResult.proteinGroupFDR.filteredContains(pg));
+                        CvParam cvp = makeCvParam("MS:1002415", "protein group passes threshold", psiCV,""+fdrResult.getProteinGroupFDR().filteredContains(pg));
                         pag.getCvParam().add(cvp);
                      
                     }
@@ -1019,7 +1019,7 @@ public class MZIdentMLExport {
                     CvParam cvp2 = null;
                     if (pag2 != null) {
                         ProteinGroupPair pgp = psm.getLinks().iterator().next().getProteinGroupPair();
-                        ProteinGroupPair pgp_final =  result.proteinGroupPairFDR.filteredGet(pgp);
+                        ProteinGroupPair pgp_final =  result.getProteinGroupPairFDR().filteredGet(pgp);
                         double pgp_fdr = (pgp_final == null?pgp.getFDR(): pgp_final.getFDR());
                         if (passed) {
                             Iterator<ProteinGroupLink> linkiter =  psm.getLinks().iterator();                                    
@@ -1070,9 +1070,9 @@ public class MZIdentMLExport {
 
         
         int residuepairID = 1;
-        for (ProteinGroupLink pgl : fdrResult.proteinGroupLinkFDR) {
+        for (ProteinGroupLink pgl : fdrResult.getProteinGroupLinkFDR()) {
             boolean passed = false;
-            if (fdrResult.proteinGroupLinkFDR.filteredContains(pgl)) {
+            if (fdrResult.getProteinGroupLinkFDR().filteredContains(pgl)) {
                 passed = true;
             }
 

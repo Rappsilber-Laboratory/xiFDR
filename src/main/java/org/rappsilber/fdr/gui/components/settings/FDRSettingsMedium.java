@@ -24,6 +24,7 @@ import javax.swing.SpinnerModel;
 import javax.swing.SwingUtilities;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
+import org.rappsilber.fdr.FDRSettings;
 import org.rappsilber.fdr.FDRSettingsImpl;
 import org.rappsilber.fdr.OfflineFDR;
 import org.rappsilber.fdr.OfflineFDR.FDRLevel;
@@ -67,21 +68,21 @@ public class FDRSettingsMedium extends FDRSettingsPanel  {
     UpdateableDouble protFDR = new UpdateableDouble(0);
 
     @Override
-    public boolean getBoostBetween() {
-        return ckBoostBetween.isSelected();
+    public FDRSettings.BoostMode getBoostMode() {
+        FDRSettings.BoostMode mode = (FDRSettings.BoostMode) cmbBoostMode.getSelectedItem();
+        return mode != null ? mode : FDRSettings.BoostMode.NONE;
     }
 
     @Override
-    public void setBoostBetween(final boolean between) {
+    public void setBoostMode(final FDRSettings.BoostMode mode) {
         SwingUtilities.invokeLater(new Runnable() {
-
             public void run() {
-                ckBoostBetween.setSelected(between);
+                cmbBoostMode.setSelectedItem(mode);
             }
         });
-    }    
+    }
 
-    
+
     /**
      * Creates new form FDRSettingsComplete
      */
@@ -115,8 +116,8 @@ public class FDRSettingsMedium extends FDRSettingsPanel  {
         this.linkLocalFDR = tsLocalFDR.getSelectionState();
         this.ppiLocalFDR = tsLocalFDR.getSelectionState();
 
-        btnStopBoost.setEnabled(ckMaximize.isSelected());            
-        raiseStartCalc(ckMaximize.isSelected());
+        btnStopBoost.setEnabled(getBoostMode() != FDRSettings.BoostMode.NONE);
+        raiseStartCalc(getBoostMode() != FDRSettings.BoostMode.NONE);
 
     }
     
@@ -277,7 +278,7 @@ public class FDRSettingsMedium extends FDRSettingsPanel  {
     
     @Override
     public OfflineFDR.FDRLevel doOptimize() {
-        if (!ckMaximize.isSelected())
+        if (getBoostMode() == FDRSettings.BoostMode.NONE)
             return null;
         if (rbBoostPeptidePairs.isSelected()) {
             return OfflineFDR.FDRLevel.PEPTIDE_PAIR;
@@ -294,11 +295,8 @@ public class FDRSettingsMedium extends FDRSettingsPanel  {
     @Override
     public void doOptimize(OfflineFDR.FDRLevel level) {
         if (level == null) {
-            ckMaximize.setSelected(false);
-            ckMaximizeActionPerformed(null);
-        }else { 
-            ckMaximize.setSelected(true);
-            ckMaximizeActionPerformed(null);
+            setBoostMode(FDRSettings.BoostMode.NONE);
+        } else {
             switch(level) {
                 case PEPTIDE_PAIR:
                     bgBoost.setSelected(rbBoostPeptidePairs.getModel(), true);
@@ -368,7 +366,7 @@ public class FDRSettingsMedium extends FDRSettingsPanel  {
     private void initComponents() {
 
         bgBoost = new javax.swing.ButtonGroup();
-        ckBoostBetween = new javax.swing.JCheckBox();
+        cmbBoostMode = new javax.swing.JComboBox<>(FDRSettings.BoostMode.values());
         btnCalc = new javax.swing.JButton();
         btnStopBoost = new javax.swing.JButton();
         jLabel5 = new javax.swing.JLabel();
@@ -383,13 +381,22 @@ public class FDRSettingsMedium extends FDRSettingsPanel  {
         rbBoostLinks = new javax.swing.JRadioButton();
         rbBoostPPI = new javax.swing.JRadioButton();
         rbBoostPeptidePairs = new javax.swing.JRadioButton();
-        ckMaximize = new javax.swing.JCheckBox();
         cbBoostOther = new javax.swing.JComboBox<>();
         rbBoostOther = new javax.swing.JRadioButton();
         tsLocalFDR = new org.rappsilber.gui.components.TriStateCheckBox();
         jLabel6 = new javax.swing.JLabel();
+        btnBoostHelp = new javax.swing.JButton("?");
 
-        ckBoostBetween.setText("Between");
+        cmbBoostMode.setToolTipText("Select what the boost should optimise");
+        cmbBoostMode.setSelectedItem(FDRSettings.BoostMode.NONE);
+
+        btnBoostHelp.setMargin(new java.awt.Insets(0, 4, 0, 4));
+        btnBoostHelp.setToolTipText("Show boost mode descriptions");
+        btnBoostHelp.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                btnBoostHelpActionPerformed(evt);
+            }
+        });
 
         btnCalc.setText("Calculate");
         btnCalc.addActionListener(new java.awt.event.ActionListener() {
@@ -450,11 +457,14 @@ public class FDRSettingsMedium extends FDRSettingsPanel  {
             }
         });
 
-        ckMaximize.setText("Boost");
-        ckMaximize.setToolTipText("should we try to boost the results reported for a specified maximum FDR");
-        ckMaximize.addActionListener(new java.awt.event.ActionListener() {
+        cmbBoostMode.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
-                ckMaximizeActionPerformed(evt);
+                boolean boost = getBoostMode() != FDRSettings.BoostMode.NONE;
+                rbBoostLinks.setEnabled(boost);
+                rbBoostPPI.setEnabled(boost);
+                rbBoostPeptidePairs.setEnabled(boost);
+                rbBoostOther.setEnabled(boost);
+                cbBoostOther.setEnabled(boost);
             }
         });
 
@@ -507,13 +517,17 @@ public class FDRSettingsMedium extends FDRSettingsPanel  {
                         .addComponent(tsLocalFDR, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)))
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.CENTER)
-                    .addComponent(ckMaximize)
                     .addComponent(rbBoostPeptidePairs)
                     .addComponent(rbBoostLinks)
                     .addComponent(rbBoostPPI)
                     .addComponent(rbBoostOther))
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addComponent(cbBoostOther, javax.swing.GroupLayout.PREFERRED_SIZE, 95, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.CENTER)
+                    .addGroup(layout.createSequentialGroup()
+                        .addComponent(cmbBoostMode, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                        .addComponent(btnBoostHelp))
+                    .addComponent(cbBoostOther, javax.swing.GroupLayout.PREFERRED_SIZE, 95, javax.swing.GroupLayout.PREFERRED_SIZE))
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 86, Short.MAX_VALUE)
                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                     .addComponent(btnCalc)
@@ -529,7 +543,8 @@ public class FDRSettingsMedium extends FDRSettingsPanel  {
                 .addContainerGap()
                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
                     .addComponent(jLabel9)
-                    .addComponent(ckMaximize))
+                    .addComponent(cmbBoostMode, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(btnBoostHelp))
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
                     .addGroup(layout.createSequentialGroup()
@@ -581,15 +596,6 @@ public class FDRSettingsMedium extends FDRSettingsPanel  {
         raiseStopMaximizing();
     }//GEN-LAST:event_btnStopBoostActionPerformed
 
-    private void ckMaximizeActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_ckMaximizeActionPerformed
-        rbBoostLinks.setEnabled(ckMaximize.isSelected());
-        rbBoostPPI.setEnabled(ckMaximize.isSelected());
-        rbBoostPeptidePairs.setEnabled(ckMaximize.isSelected());
-        rbBoostOther.setEnabled(ckMaximize.isSelected());
-        cbBoostOther.setEnabled(ckMaximize.isSelected());
-        ckBoostBetween.setEnabled(ckMaximize.isSelected());
-        
-    }//GEN-LAST:event_ckMaximizeActionPerformed
 
     private void setBoostingLevel(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_setBoostingLevel
         if (evt.getSource() instanceof JRadioButton) {
@@ -611,13 +617,25 @@ public class FDRSettingsMedium extends FDRSettingsPanel  {
 
     }//GEN-LAST:event_tsLocalFDRActionPerformed
 
+    private void btnBoostHelpActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnBoostHelpActionPerformed
+        javax.swing.JPopupMenu popup = new javax.swing.JPopupMenu();
+        StringBuilder sb = new StringBuilder("<html>");
+        for (FDRSettings.BoostMode mode : FDRSettings.BoostMode.values()) {
+            sb.append("<b>").append(mode.getName()).append("</b>: ")
+              .append(mode.getDescription()).append("<br>");
+        }
+        sb.append("</html>");
+        popup.add(new javax.swing.JLabel(sb.toString()));
+        popup.show(btnBoostHelp, 0, btnBoostHelp.getHeight());
+    }//GEN-LAST:event_btnBoostHelpActionPerformed
+
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.ButtonGroup bgBoost;
+    private javax.swing.JButton btnBoostHelp;
     private javax.swing.JButton btnCalc;
     public javax.swing.JButton btnStopBoost;
     private javax.swing.JComboBox<FDRLevel> cbBoostOther;
-    private javax.swing.JCheckBox ckBoostBetween;
-    private javax.swing.JCheckBox ckMaximize;
+    private javax.swing.JComboBox<FDRSettings.BoostMode> cmbBoostMode;
     private javax.swing.JLabel jLabel2;
     private javax.swing.JLabel jLabel3;
     private javax.swing.JLabel jLabel4;

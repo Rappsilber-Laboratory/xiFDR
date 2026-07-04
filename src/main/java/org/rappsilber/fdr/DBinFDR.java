@@ -2144,7 +2144,7 @@ public class DBinFDR extends org.rappsilber.fdr.OfflineFDR implements XiInFDR {
         boolean autocomit = getDBConnection().getAutoCommit();
         getDBConnection().setAutoCommit(false);
         // also write the fdr-values
-        for (PeptidePair pp : result.peptidePairFDR.filteredResults()) {
+        for (PeptidePair pp : result.getPeptidePairFDR().filteredResults()) {
             ProteinGroupPair pgp = pp.getFdrLink().getFdrPPI();
             double confidence = 100 * (1 - pgp.getFDR());
             for (String psmid : pp.getPSMids()) {
@@ -2175,7 +2175,7 @@ public class DBinFDR extends org.rappsilber.fdr.OfflineFDR implements XiInFDR {
         boolean autocomit = getDBConnection().getAutoCommit();
         getDBConnection().setAutoCommit(false);
         // also write the fdr-values
-        for (PeptidePair pp : result.peptidePairFDR.filteredResults()) {
+        for (PeptidePair pp : result.getPeptidePairFDR().filteredResults()) {
 
             double confidence = 100 * (1 - pp.getFDR());
             for (String psmid : pp.getPSMids()) {
@@ -2206,7 +2206,7 @@ public class DBinFDR extends org.rappsilber.fdr.OfflineFDR implements XiInFDR {
         boolean autocomit = getDBConnection().getAutoCommit();
         getDBConnection().setAutoCommit(false);
         // also write the fdr-values
-        for (PeptidePair pp : result.peptidePairFDR.filteredResults()) {
+        for (PeptidePair pp : result.getPeptidePairFDR().filteredResults()) {
             if (!pp.isLinear()) {
                 ProteinGroupLink l = pp.getFdrLink();
                 double confidence = 100 * (1 - l.getFDR());
@@ -2249,7 +2249,7 @@ public class DBinFDR extends org.rappsilber.fdr.OfflineFDR implements XiInFDR {
                 stVal = updateValidateNonOverWrite;
             }
             // write out validations - but only if the match was not already validated
-            for (PSM psm : result.psmFDR.filteredResults()) {
+            for (PSM psm : result.getPsmFDR().filteredResults()) {
                 Long psmid = Long.parseLong(psm.getPsmID());
 //                    for (PeptidePair pp : result.peptidePairFDR) {
 //                        for (String psmid : pp.getPSMids()) {

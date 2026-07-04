@@ -362,8 +362,8 @@ public class CSVinFDR extends OfflineFDR {
                 }
 
 
-                Integer site1 = csv.getInteger(cpep1site,-1);
-                Integer site2 = csv.getInteger(cpep2site,-1); //pepSeq2 == null || pepSeq2.trim().isEmpty() ? -1 : csv.getInteger(cpep2site,-1);
+                Integer site1 = (int)csv.getDouble(cpep1site,-1.0);
+                Integer site2 = (int)csv.getDouble(cpep2site,-1.0); //pepSeq2 == null || pepSeq2.trim().isEmpty() ? -1 : (int)csv.getDouble(cpep2site,-1);
 
                 // do we have to generate an ID?
                 if (cpsmID == null) {
@@ -373,22 +373,22 @@ public class CSVinFDR extends OfflineFDR {
                         String key = "Scan: " + csv.getValue(cscan) + " Run: " + csv.getValue(crun);
                         int c= pepSeq1.compareTo(pepSeq2) ;
                         if (c > 0 || (c==0 && site1 > site2) ) {
-                            key=key +" P1_" + csv.getValue(cpep1) + " P2_" + csv.getValue(cpep2) + " " + csv.getInteger(cpep1site) + " " + csv.getInteger(cpep2site);
+                            key=key +" P1_" + csv.getValue(cpep1) + " P2_" + csv.getValue(cpep2) + " " + (int)csv.getDouble(cpep1site) + " " + (int)csv.getDouble(cpep2site);
                         } else {
-                            key=key +" P1_" + csv.getValue(cpep2) + " P2_" + csv.getValue(cpep1) + " " + csv.getInteger(cpep2site) + " " + csv.getInteger(cpep1site);;
+                            key=key +" P1_" + csv.getValue(cpep2) + " P2_" + csv.getValue(cpep1) + " " + (int)csv.getDouble(cpep2site) + " " + (int)csv.getDouble(cpep1site);;
                         }
                         //psmID = PSMIDs.toIntValue(key);
                         psmID = key;
                     }
                 }else
-                    //psmID=csv.getInteger(cpsmID);
+                    //psmID=(int)csv.getDouble(cpsmID);
                     psmID=csv.getValue(cpsmID);
 
 
                 // if we have a column for the peptide length take that value
                 // otherwise count all capital letters in the sequence and define 
                 // this as length 
-                int peplen1 = cpep1len == null ? pepSeq1.replaceAll("[^A-Z]", "").length() : csv.getInteger(cpep1len);
+                int peplen1 = cpep1len == null ? pepSeq1.replaceAll("[^A-Z]", "").length() : (int)csv.getDouble(cpep1len);
 
                 Integer peplen2 = null;
                 if (cpep2len == null) 
@@ -398,12 +398,12 @@ public class CSVinFDR extends OfflineFDR {
                         peplen2 = pepSeq2.replaceAll("[^A-Z]", "").length();
                     }
                 else {
-                    peplen2 = csv.getInteger(cpep2len, 0);
+                    peplen2 = (int)csv.getDouble(cpep2len, 0);
                 }
 
                 boolean isDecoy1 = csv.getBool(cpep1decoy,false);
                 boolean isDecoy2=  cpep2decoy == null ? false : csv.getBool(cpep2decoy, false);
-                int charge = csv.getInteger(cprecZ);
+                int charge = (int)csv.getDouble(cprecZ);
                 Double score = csv.getDouble(cscore);
                 String saccession1 = csv.getValue(caccession1);
                 String sname1 = csv.getValue(cname1);
@@ -473,12 +473,12 @@ public class CSVinFDR extends OfflineFDR {
                 
                 int[] ipeppos1 = new int[pepPositions1.length];
                 for (int i = 0; i<pepPositions1.length; i++) {
-                    ipeppos1[i] = Integer.parseInt(pepPositions1[i].trim().replace(",", ""));
+                    ipeppos1[i] = (int)Double.parseDouble(pepPositions1[i].trim().replace(",", ""));
                 }
 
                 int[] ipeppos2 = new int[pepPositions2.length];
                 for (int i = 0; i<pepPositions2.length; i++) {
-                    ipeppos2[i] = Integer.parseInt(pepPositions2[i].replace(",", ""));
+                    ipeppos2[i] = (int)Double.parseDouble(pepPositions2[i].replace(",", ""));
                 }
 
                 String run = crun == null ? "":csv.getValue(crun);
@@ -534,10 +534,10 @@ public class CSVinFDR extends OfflineFDR {
                             psm.setInfo(csv.getValue(cInfo));
                         }
                         if (cRank != null) {
-                            psm.setRank(csv.getInteger(cRank));
+                            psm.setRank((int)csv.getDouble(cRank));
                         }
                         if (cScanInputIndex != null) {
-                            psm.setFileScanIndex(csv.getInteger(cScanInputIndex));
+                            psm.setFileScanIndex((int)csv.getDouble(cScanInputIndex));
                         }
                         if (cPeakFileName != null) {
                             psm.setPeakListName(csv.getValue(cPeakFileName));
@@ -565,8 +565,8 @@ public class CSVinFDR extends OfflineFDR {
                     
                 }
                 if (cPepDoublets != null) {
-                    psm.addOtherInfo("PeptidesWithDoublets", csv.getInteger(cPepDoublets));
-                    psm.peptidesWithDoublets = csv.getInteger(cPepDoublets);
+                    psm.addOtherInfo("PeptidesWithDoublets", csv.getDouble(cPepDoublets));
+                    psm.peptidesWithDoublets = (int)csv.getDouble(cPepDoublets);
                 }
                 
                 if (cPepMinCoverage != null) {

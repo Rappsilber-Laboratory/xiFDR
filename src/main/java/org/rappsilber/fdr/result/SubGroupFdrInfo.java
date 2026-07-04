@@ -73,6 +73,12 @@ public class SubGroupFdrInfo<T extends FDRSelfAdd> implements Iterable<T> {
     public int linear;
     
     public String didntPassCheck = null;
+
+    /**
+     * when true the FDR is calculated as (TD+DD)/TT instead of (TD-DD)/TT
+     * (used for self-links with overlapping peptides)
+     */
+    public boolean useAdditiveFDR = false;
     
     public Iterator<T> filteredIterator() {
         return filteredResult.iterator();

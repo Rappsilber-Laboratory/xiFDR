@@ -57,6 +57,8 @@ public class ProteinGroupPair extends AbstractFDRElement<ProteinGroupPair> { //i
     private boolean isDecoy2;
     /** it could be a protein internal link */
     private boolean isInternal = false;
+    /** self-link supported only by overlapping peptide pairs */
+    private boolean isOverlapping = false;
     private boolean isTT = false;
     private boolean isTD = false;
     private boolean isDD = false;
@@ -96,8 +98,8 @@ public class ProteinGroupPair extends AbstractFDRElement<ProteinGroupPair> { //i
 
     public void setFDRGroup() {
         if (protein1 == protein2 || protein1.hasOverlap(protein2))
-            fdrGroup = "Self";
-        else 
+            fdrGroup = isOverlapping ? "Self Overlapping" : "Self";
+        else
             fdrGroup = "Between";
 
         if (m_negativeGroups != null)
@@ -118,6 +120,7 @@ public class ProteinGroupPair extends AbstractFDRElement<ProteinGroupPair> { //i
         isNonCovalent = pp.isNonCovalent();
         this.m_positiveGroups = pp.getPositiveGrouping();
         this.m_negativeGroups = pp.getNegativeGrouping();
+        this.isOverlapping = pp.isOverlapping();
     }
 
     public ProteinGroupPair(ProteinGroupLink l) {
@@ -127,6 +130,7 @@ public class ProteinGroupPair extends AbstractFDRElement<ProteinGroupPair> { //i
         this.m_positiveGroups = l.getPositiveGrouping();
         this.m_negativeGroups = l.getNegativeGrouping();
         this.sortedLinks.add(l);
+        this.isOverlapping = l.isOverlapping();
     }
 
     @Override
@@ -141,7 +145,7 @@ public class ProteinGroupPair extends AbstractFDRElement<ProteinGroupPair> { //i
 
     @Override
     public int hashCode() {
-        return hashcode;
+        return isOverlapping ? hashcode ^ 0x8000 : hashcode;
     }
 
     @Override
@@ -150,6 +154,8 @@ public class ProteinGroupPair extends AbstractFDRElement<ProteinGroupPair> { //i
             return true;
         ProteinGroupPair c = (ProteinGroupPair) l;
         if (isNonCovalent != c.isNonCovalent)
+            return false;
+        if (isInternal && isOverlapping != c.isOverlapping)
             return false;
         return (c.protein1.equals(protein1) && c.protein2.equals(protein2)) || (c.protein1.equals(protein2) && c.protein2.equals(protein1));
     }
@@ -248,6 +254,15 @@ public class ProteinGroupPair extends AbstractFDRElement<ProteinGroupPair> { //i
      */
     public boolean isInternal() {
         return isInternal;
+    }
+
+    public boolean isOverlapping() {
+        return isOverlapping;
+    }
+
+    public void setOverlapping(boolean isOverlapping) {
+        this.isOverlapping = isOverlapping;
+        this.fdrGroup = null; // force recomputation via setFDRGroup()
     }
 
     /**

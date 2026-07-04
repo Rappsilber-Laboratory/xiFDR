@@ -94,8 +94,10 @@
                   <Group type="102" alignment="0" attributes="0">
                       <Group type="103" groupAlignment="0" attributes="0">
                           <Group type="102" alignment="0" attributes="0">
-                              <Component id="ckMaximize" min="-2" max="-2" attributes="0"/>
-                              <EmptySpace min="-2" pref="12" max="-2" attributes="0"/>
+                              <Component id="cmbBoostMode" min="-2" max="32767" attributes="0"/>
+                              <EmptySpace max="-2" attributes="0"/>
+                              <Component id="btnBoostHelp" min="-2" max="-2" attributes="0"/>
+                              <EmptySpace max="-2" attributes="0"/>
                               <Component id="cbBoostWhat" max="32767" attributes="0"/>
                           </Group>
                           <Component id="btnStopBoost" alignment="0" min="-2" max="-2" attributes="0"/>
@@ -106,9 +108,7 @@
                               <Component id="jLabel23" max="-2" attributes="0"/>
                               <EmptySpace type="unrelated" max="-2" attributes="0"/>
                               <Component id="spMaximizeSteps" max="32767" attributes="0"/>
-                              <EmptySpace type="unrelated" max="-2" attributes="0"/>
-                              <Component id="ckBoostBetween" min="-2" max="-2" attributes="0"/>
-                              <EmptySpace max="-2" attributes="0"/>
+                              <EmptySpace min="-2" pref="161" max="-2" attributes="0"/>
                               <Component id="ckSelfLinearModFilter" min="-2" max="-2" attributes="0"/>
                               <EmptySpace max="-2" attributes="0"/>
                           </Group>
@@ -218,11 +218,11 @@
               <Component id="spOtherFilter" pref="127" max="32767" attributes="0"/>
               <EmptySpace type="separate" max="-2" attributes="0"/>
               <Group type="103" groupAlignment="3" attributes="0">
-                  <Component id="ckMaximize" alignment="3" min="-2" max="-2" attributes="0"/>
                   <Component id="cbBoostWhat" alignment="3" min="-2" max="-2" attributes="0"/>
                   <Component id="jLabel23" alignment="3" min="-2" max="-2" attributes="0"/>
                   <Component id="spMaximizeSteps" alignment="3" min="-2" max="-2" attributes="0"/>
-                  <Component id="ckBoostBetween" alignment="3" min="-2" max="-2" attributes="0"/>
+                  <Component id="cmbBoostMode" alignment="3" min="-2" max="-2" attributes="0"/>
+                  <Component id="btnBoostHelp" alignment="3" min="-2" max="-2" attributes="0"/>
                   <Component id="ckSelfLinearModFilter" alignment="3" min="-2" max="-2" attributes="0"/>
               </Group>
               <EmptySpace max="-2" attributes="0"/>
@@ -362,16 +362,6 @@
         <EventHandler event="actionPerformed" listener="java.awt.event.ActionListener" parameters="java.awt.event.ActionEvent" handler="btnCalcActionPerformed"/>
       </Events>
     </Component>
-    <Component class="javax.swing.JCheckBox" name="ckMaximize">
-      <Properties>
-        <Property name="selected" type="boolean" value="true"/>
-        <Property name="text" type="java.lang.String" value="boost"/>
-        <Property name="toolTipText" type="java.lang.String" value="should we try to boost the results reported for a specified maximum FDR"/>
-      </Properties>
-      <Events>
-        <EventHandler event="actionPerformed" listener="java.awt.event.ActionListener" parameters="java.awt.event.ActionEvent" handler="ckMaximizeActionPerformed"/>
-      </Events>
-    </Component>
     <Component class="javax.swing.JSpinner" name="spMaximizeSteps">
       <Properties>
         <Property name="model" type="javax.swing.SpinnerModel" editor="org.netbeans.modules.form.editors2.SpinnerModelEditor">
@@ -440,11 +430,31 @@
         <Property name="toolTipText" type="java.lang.String" value="only use the top match for each combination of charge peptide1, peptide2 and charge state as a PSM"/>
       </Properties>
     </Component>
-    <Component class="javax.swing.JCheckBox" name="ckBoostBetween">
+    <Component class="javax.swing.JComboBox" name="cmbBoostMode">
       <Properties>
-        <Property name="text" type="java.lang.String" value="Between"/>
-        <Property name="toolTipText" type="java.lang.String" value="optimize settings for maximizing between matches"/>
+        <Property name="model" type="javax.swing.ComboBoxModel" editor="org.netbeans.modules.form.RADConnectionPropertyEditor">
+          <Connection code="new javax.swing.DefaultComboBoxModel&lt;org.rappsilber.fdr.FDRSettings.BoostMode&gt;(org.rappsilber.fdr.FDRSettings.BoostMode.values())" type="code"/>
+        </Property>
+        <Property name="toolTipText" type="java.lang.String" value="Select boost mode"/>
       </Properties>
+      <Events>
+        <EventHandler event="actionPerformed" listener="java.awt.event.ActionListener" parameters="java.awt.event.ActionEvent" handler="cmbBoostModeActionPerformed"/>
+      </Events>
+      <AuxValues>
+        <AuxValue name="JavaCodeGenerator_TypeParameters" type="java.lang.String" value="&lt;org.rappsilber.fdr.FDRSettings.BoostMode&gt;"/>
+      </AuxValues>
+    </Component>
+    <Component class="javax.swing.JButton" name="btnBoostHelp">
+      <Properties>
+        <Property name="text" type="java.lang.String" value="?"/>
+        <Property name="margin" type="java.awt.Insets" editor="org.netbeans.beaninfo.editors.InsetsEditor">
+          <Insets value="[0, 4, 0, 4]"/>
+        </Property>
+        <Property name="toolTipText" type="java.lang.String" value="Show boost mode descriptions"/>
+      </Properties>
+      <Events>
+        <EventHandler event="actionPerformed" listener="java.awt.event.ActionListener" parameters="java.awt.event.ActionEvent" handler="btnBoostHelpActionPerformed"/>
+      </Events>
     </Component>
     <Component class="javax.swing.JButton" name="btnBoostIgnores">
       <Properties>
