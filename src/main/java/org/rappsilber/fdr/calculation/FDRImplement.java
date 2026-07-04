@@ -333,6 +333,7 @@ public class FDRImplement implements FDR {
         collectedInfo.DCount += addInfo.DCount;
         collectedInfo.TCount += addInfo.TCount;
         collectedInfo.inputCount += addInfo.inputCount;
+        collectedInfo.useAdditiveFDR = collectedInfo.useAdditiveFDR || addInfo.useAdditiveFDR;
         if (collectedInfo.fdrGroup == null || collectedInfo.fdrGroup.isEmpty())
             collectedInfo.fdrGroup = addInfo.fdrGroup;
         else {

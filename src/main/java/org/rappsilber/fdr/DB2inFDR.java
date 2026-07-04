@@ -920,6 +920,7 @@ import rappsilber.ms.statistics.utils.UpdateableLong;
                 if (resultset_ids.length >1)
                     Logger.getLogger(this.getClass().getName()).log(Level.INFO, "Resultset {0} of {1}", new Object[]{currentresultset+1, resultset_ids.length});
                 Connection con = getDBConnection();
+                boolean prevAutoCommit = con.getAutoCommit();
                 con.setAutoCommit(false);
                 Statement stm = con.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY);
                 stm.setFetchSize(1000);
@@ -1242,10 +1243,16 @@ import rappsilber.ms.statistics.utils.UpdateableLong;
                     }
                     rs.close();
                     stm.close();
+                    con.setAutoCommit(prevAutoCommit);
 
                     m_resultset_ids.add(resultset_id);
 
                 } catch (SQLException sex) {
+                    try {
+                        con.setAutoCommit(prevAutoCommit);
+                    } catch (SQLException sex2) {
+                        Logger.getLogger(this.getClass().getName()).log(Level.WARNING, "could not restore autocommit state", sex2);
+                    }
                     if (tries < 5) {
                         int nexttry = tries;
                         if (total<10) {

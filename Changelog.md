@@ -1,4 +1,10 @@
 
+2.4
+
+* Self and heteromeric matches can now boosted sequentially and (mostly) independently
+* Protein homomultimeric self links are now treated separately
+* BUGFIX config modifications missing leading to unknoqwn modification warning during mzIdentML export
+
 2.3.10
 
 * new csv argument --filter
