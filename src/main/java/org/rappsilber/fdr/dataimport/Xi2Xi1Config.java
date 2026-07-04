@@ -243,7 +243,7 @@ public class Xi2Xi1Config extends AbstractRunConfig{
         }
         
         public String toxi1Mod() throws java.text.ParseException {
-            StringBuilder sb = new StringBuilder("modifcation::variable:SYMBOLEXT:");
+            StringBuilder sb = new StringBuilder("modification:variable::SYMBOLEXT:");
             sb.append(symbol);
             sb.append(";MODIFIED:");
             boolean first  =true;

@@ -26,9 +26,9 @@ public interface FDRSettings {
 
     public enum BoostMode {
         NONE("No Boosting", "Don't try to boost"),
-        ALL("All", "Boost all crosslinked items as one list"),
-        BETWEEN("Between", "Boost to increase protein heteromeric matches"),
-        SELFBETWEEN("Self+Between", "Bost first self links and then protein heteromeric matches");
+        ALL("All", "Boost all crosslinked items as one list (typically favours self matches)"),
+        BETWEEN("Between", "Boost to increase protein heteromeric matches (typically heavily disvafours self matches)"),
+        SELFBETWEEN("Self+Between", "Bost first self matches and then protein heteromeric matches");
 
         private final String name;
         private final String description;
