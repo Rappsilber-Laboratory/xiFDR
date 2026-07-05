@@ -25,6 +25,7 @@ import java.awt.event.MouseEvent;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.EventObject;
@@ -577,7 +578,7 @@ public class CSVSelection extends javax.swing.JPanel implements Iterable<CsvPars
         }
     }
     
-    public CsvCondition getFilter() {
+    public CsvCondition getFilter() throws ParseException{
         if (ckFilter.isSelected()) {
             return filter.getCondition();
         }

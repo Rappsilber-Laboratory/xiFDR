@@ -30,10 +30,10 @@
                       <Group type="103" groupAlignment="1" attributes="0">
                           <Component id="spReportFactor" alignment="0" max="32767" attributes="0"/>
                           <Component id="spFDR" max="32767" attributes="0"/>
-                          <Group type="102" attributes="0">
-                              <Component id="ckMaximize" min="-2" max="-2" attributes="0"/>
-                              <EmptySpace pref="38" max="32767" attributes="0"/>
-                              <Component id="ckBoostBetween" min="-2" max="-2" attributes="0"/>
+                          <Group type="102" alignment="0" attributes="0">
+                              <Component id="cmbBoostMode" max="32767" attributes="0"/>
+                              <EmptySpace max="-2" attributes="0"/>
+                              <Component id="btnBoostHelp" min="-2" max="-2" attributes="0"/>
                           </Group>
                       </Group>
                       <EmptySpace max="-2" attributes="0"/>
@@ -58,12 +58,10 @@
                   <Component id="cbFDRLevel" alignment="3" min="-2" max="-2" attributes="0"/>
               </Group>
               <EmptySpace type="unrelated" max="-2" attributes="0"/>
-              <Group type="103" groupAlignment="0" attributes="0">
-                  <Group type="103" groupAlignment="3" attributes="0">
-                      <Component id="ckMaximize" alignment="3" min="-2" max="-2" attributes="0"/>
-                      <Component id="lblBoost" alignment="3" min="-2" max="-2" attributes="0"/>
-                  </Group>
-                  <Component id="ckBoostBetween" alignment="1" min="-2" max="-2" attributes="0"/>
+              <Group type="103" groupAlignment="3" attributes="0">
+                  <Component id="lblBoost" alignment="3" min="-2" max="-2" attributes="0"/>
+                  <Component id="cmbBoostMode" alignment="3" min="-2" max="-2" attributes="0"/>
+                  <Component id="btnBoostHelp" alignment="3" min="-2" max="-2" attributes="0"/>
               </Group>
               <EmptySpace type="unrelated" max="-2" attributes="0"/>
               <Group type="103" groupAlignment="3" attributes="0">
@@ -111,23 +109,11 @@
         <EventHandler event="actionPerformed" listener="java.awt.event.ActionListener" parameters="java.awt.event.ActionEvent" handler="btnCalcActionPerformed"/>
       </Events>
     </Component>
-    <Component class="javax.swing.JCheckBox" name="ckMaximize">
-      <Properties>
-        <Property name="selected" type="boolean" value="true"/>
-        <Property name="toolTipText" type="java.lang.String" value="Use prefiltering on lower level to boost the results on the chossen level of information"/>
-      </Properties>
-      <Events>
-        <EventHandler event="actionPerformed" listener="java.awt.event.ActionListener" parameters="java.awt.event.ActionEvent" handler="ckMaximizeActionPerformed"/>
-      </Events>
-    </Component>
     <Component class="javax.swing.JLabel" name="lblBoost">
       <Properties>
         <Property name="text" type="java.lang.String" value="Boost result"/>
         <Property name="toolTipText" type="java.lang.String" value="Use prefiltering on lower level to boost the results on the chossen level of information"/>
       </Properties>
-      <Events>
-        <EventHandler event="mouseClicked" listener="java.awt.event.MouseListener" parameters="java.awt.event.MouseEvent" handler="lblBoostMouseClicked"/>
-      </Events>
     </Component>
     <Component class="javax.swing.JSpinner" name="spFDR">
       <Properties>
@@ -158,10 +144,22 @@
         <AuxValue name="JavaCodeGenerator_VariableModifier" type="java.lang.Integer" value="1"/>
       </AuxValues>
     </Component>
-    <Component class="javax.swing.JCheckBox" name="ckBoostBetween">
+    <Component class="javax.swing.JComboBox" name="cmbBoostMode">
       <Properties>
-        <Property name="text" type="java.lang.String" value="Between"/>
+        <Property name="toolTipText" type="java.lang.String" value="Select the boost mode"/>
       </Properties>
+    </Component>
+    <Component class="javax.swing.JButton" name="btnBoostHelp">
+      <Properties>
+        <Property name="text" type="java.lang.String" value="?"/>
+        <Property name="margin" type="java.awt.Insets" editor="org.netbeans.beaninfo.editors.InsetsEditor">
+          <Insets value="[0, 4, 0, 4]"/>
+        </Property>
+        <Property name="toolTipText" type="java.lang.String" value="Show boost mode descriptions"/>
+      </Properties>
+      <Events>
+        <EventHandler event="actionPerformed" listener="java.awt.event.ActionListener" parameters="java.awt.event.ActionEvent" handler="btnBoostHelpActionPerformed"/>
+      </Events>
     </Component>
   </SubComponents>
 </Form>

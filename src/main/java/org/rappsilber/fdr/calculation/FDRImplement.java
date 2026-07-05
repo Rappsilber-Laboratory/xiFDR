@@ -166,9 +166,10 @@ public class FDRImplement implements FDR {
 
             ArrayList<T> groupResult = new ArrayList<T>();
             info.inputCount = group.size();
-            info.targteFDR = fdr;
+            info.targetFDR = fdr;
             info.saftyfactor = safetyfactor;
             info.fdrGroup = fdrgroup;
+            info.useAdditiveFDR = fdrgroup.contains("Overlapping");
             // do a local fdr
             if (localFDR == null || localFDR) {
                 subFDRLocal(group, info);
@@ -219,7 +220,7 @@ public class FDRImplement implements FDR {
             Logger.getLogger(this.getClass().getName()).log(Level.FINE, "Join up discarded groups to try and get some more results");
             if (discardedGroupsBetween >1) {
                 ArrayList<T> groupResult = new ArrayList<T>();
-                collectedBetween.targteFDR = fdr;
+                collectedBetween.targetFDR = fdr;
                 collectedBetween.saftyfactor = safetyfactor;
                 collectedBetween.fdrGroup = "CollectedResultsBetween [" + collectedBetween.fdrGroup + "]";
                 if (localFDR == null || localFDR) {
@@ -247,7 +248,7 @@ public class FDRImplement implements FDR {
             if (collectedElementsOthers.size() > 1) {
                 ArrayList<T> groupResultwithin = new ArrayList<T>();
 
-                collectedOthers.targteFDR = fdr;
+                collectedOthers.targetFDR = fdr;
                 collectedOthers.saftyfactor = safetyfactor;
                 collectedOthers.fdrGroup = "CollectedSmallResultsOthers  [" + collectedOthers.fdrGroup + "]";
                 if (localFDR == null || localFDR) {
@@ -332,6 +333,7 @@ public class FDRImplement implements FDR {
         collectedInfo.DCount += addInfo.DCount;
         collectedInfo.TCount += addInfo.TCount;
         collectedInfo.inputCount += addInfo.inputCount;
+        collectedInfo.useAdditiveFDR = collectedInfo.useAdditiveFDR || addInfo.useAdditiveFDR;
         if (collectedInfo.fdrGroup == null || collectedInfo.fdrGroup.isEmpty())
             collectedInfo.fdrGroup = addInfo.fdrGroup;
         else {
@@ -510,7 +512,7 @@ public class FDRImplement implements FDR {
         int TD = info.TD;
         int DD = info.DD;
 
-        double fdr = info.targteFDR;
+        double fdr = info.targetFDR;
 
         if (fdr >= 1) {
             fdr = Double.POSITIVE_INFINITY;
@@ -528,7 +530,9 @@ public class FDRImplement implements FDR {
         });
 
         // total fdr rate
-        double prevFDR = ((TD+1) - DD) / TT;
+        // for self-links with overlapping peptides TD should not occur so FDR = (TD+DD)/TT
+        final boolean addDD = info.useAdditiveFDR;
+        double prevFDR = addDD ? ((TD+1) + DD) / TT : ((TD+1) - DD) / TT;
         int prevTDIndex = groupSize - 1;
 
 //        if (!isPSMScoreHighBetter())
@@ -538,9 +542,9 @@ public class FDRImplement implements FDR {
         // now we can just go through and find the cut-off
         for (int i = groupSize - 1; i >= 0; i--) {
 
-            double efdr = (TD - DD) / TT;
-            double efdr_n = ((TD - 1) - DD) / TT;
-            double efdr_p = ((TD + 1) - DD) / TT;
+            double efdr = addDD ? (TD + DD) / TT : (TD - DD) / TT;
+            double efdr_n = addDD ? ((TD - 1) + DD) / TT : ((TD - 1) - DD) / TT;
+            double efdr_p = addDD ? ((TD + 1) + DD) / TT : ((TD + 1) - DD) / TT;
             if (efdr_n < 0 && DD == 0) {
                 efdr_n = 0;
             }
@@ -605,7 +609,7 @@ public class FDRImplement implements FDR {
 
                                 double currfdr = 0;
                                 if (TD > 0) {
-                                    currfdr = (TD - DD) / TT;
+                                    currfdr = addDD ? (TD + DD) / TT : (TD - DD) / TT;
                                 }
 
                                 if (currfdr < setFDR) {
@@ -711,6 +715,7 @@ public class FDRImplement implements FDR {
      */
     protected <T extends AbstractFDRElement<T>> void subFDRLocal(ArrayList<T> group, SubGroupFdrInfo info) {
 
+        final boolean addDD = info.useAdditiveFDR;
         int TT = info.TT;
         int TD = info.TD;
         int DD = info.DD;
@@ -816,7 +821,7 @@ public class FDRImplement implements FDR {
                     }
                 }
             }
-            e.setPEP((wTD - wDD) / (double) wTT);
+            e.setPEP(addDD ? (wTD + wDD) / (double) wTT : (wTD - wDD) / (double) wTT);
             if (printOut) {
                 System.out.println(e.getScore() + ", " + e.getPEP() + ", "  + e.isTT() + ", " + e.isTD() + ", " + e.isDD() + ", " + minscore +", " + maxscore);
             }

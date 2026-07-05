@@ -59,6 +59,7 @@ import org.rappsilber.fdr.entities.AbstractFDRElement;
 import org.rappsilber.fdr.entities.FDRSelfAdd;
 import org.rappsilber.fdr.filter.DeltaScorePercentFilter;
 import org.rappsilber.fdr.utils.CalculateWriteUpdate;
+import org.rappsilber.fdr.utils.DualMaximisingStatus;
 import org.rappsilber.fdr.utils.HashedArrayList;
 import org.rappsilber.fdr.utils.MZIdentMLOwner;
 import org.rappsilber.fdr.utils.MaximisingStatus;
@@ -91,6 +92,11 @@ public abstract class OfflineFDR {
      * store all psm
      */
     protected SelfAddHashSet<PSM> allPSMs = new SelfAddHashSet<PSM>();
+
+    /** Protein groups that survived round 1 of a sequential self/between boost (non-null only during
+     *  round 2's pipeline runs). Used by calculateProteinGroupFDR to clear self-support flags from
+     *  groups not validated by round 1. */
+    private HashSet<ProteinGroup> selfSupportedProteinGroups = null;
 
     /**
      * psms that passed some form of prefilter
@@ -989,8 +995,7 @@ public abstract class OfflineFDR {
                                 if (settings.doOptimize() == null) {
                                     result = this.calculateFDR(s, true);
                                 } else {
-                                                                     //s, OfflineFDR.FDRLevel level, final boolean between, final MaximizingUpdate stateUpdate
-                                    MaximisingStatus m = this.maximise(s, settings.doOptimize(), s.getBoostBetween(), new MaximizingUpdate() {
+                                    final MaximizingUpdate maxUpdate = new MaximizingUpdate() {
                                         @Override
                                         public void setStatus(MaximisingStatus state) {
                                             update.setStatus(state);
@@ -1008,8 +1013,15 @@ public abstract class OfflineFDR {
                                             update.reportError(text, ex);
                                             return;
                                         }
-                                    });
-                                    result = m.result;
+                                    };
+                                    if (s.getBoostMode() == FDRSettings.BoostMode.SELFBETWEEN
+                                            && (settings.doOptimize() == OfflineFDR.FDRLevel.PROTEINGROUPLINK || settings.doOptimize() == OfflineFDR.FDRLevel.PROTEINGROUPPAIR)) {
+                                        DualMaximisingStatus m = this.maximiseDualSelfBetween(s, settings.doOptimize(), maxUpdate);
+                                        result = m.result;
+                                    } else {
+                                        MaximisingStatus m = this.maximise(s, settings.doOptimize(), s.getBoostMode() == FDRSettings.BoostMode.BETWEEN, maxUpdate);
+                                        result = m.result;
+                                    }
                                 }
 
                                 Logger.getLogger(this.getClass().getName()).log(Level.INFO, "PATH: " + path);
@@ -1045,7 +1057,7 @@ public abstract class OfflineFDR {
         FDRResultLevel<PSM> GroupedFDRsS = new FDRResultLevel<PSM>();
         GroupedFDRsS.isDirectional = false;
         reset();
-        result.uniquePSMs = settings.filterToUniquePSM();
+        result.setUniquePSMs(settings.filterToUniquePSM());
         double minScore = settings.minScore();
 
         protpairToID = new HashMap<>();
@@ -1056,6 +1068,13 @@ public abstract class OfflineFDR {
             allPSM = new ArrayList<>(getAllPSMs());
         } else {
             allPSM = new ArrayList<>(getPrefilteredPSMs());
+        }
+
+        // Sequential self/between boost: restrict to the requested crosslink class
+        if (settings.getCrosslinkTypeFilter() == FDRSettings.CrosslinkType.SELF) {
+            allPSM.removeIf(p -> !(p.isInternal() || p.isLinear()));
+        } else if (settings.getCrosslinkTypeFilter() == FDRSettings.CrosslinkType.BETWEEN) {
+            allPSM.removeIf(p -> !p.isBetween());
         }
 
         if (settings.getMinPeptideFragmentsFilter() > 0) {
@@ -1158,10 +1177,10 @@ public abstract class OfflineFDR {
 //        for (PSM pp : inputPSM) {
 //            pp.setFDRGroup(pp.getFDRGroup()+" z"+pp.getCharge());
 //        }
-        result.input = inputPSM;
-        result.minPeptideLength = settings.getMinPeptideLength();
-        result.maximumProteinAmbiguity = settings.getMaxProteinAmbiguity();
-        result.maximumLinkAmbiguity = settings.getMaxLinkAmbiguity();
+        result.setInput(inputPSM);
+        result.setMinPeptideLength(settings.getMinPeptideLength());
+        result.setMaximumProteinAmbiguity(settings.getMaxProteinAmbiguity());
+        result.setMaximumLinkAmbiguity(settings.getMaxLinkAmbiguity());
 
         if (settings.getGroupByCrosslinkerStubs()) {
             for (PSM p : inputPSM) {
@@ -1222,11 +1241,11 @@ public abstract class OfflineFDR {
 
         for (SubGroupFdrInfo rl : GroupedFDRs.getGroups()) {
             if (rl.didntPassCheck != null) {
-                result.excludedGroups.add("PSM -> " + rl.fdrGroup + "(" + rl.didntPassCheck + ")");
+                result.getExcludedGroups().add("PSM -> " + rl.fdrGroup + "(" + rl.didntPassCheck + ")");
             }
         }
 
-        result.psmFDR = GroupedFDRs;
+        result.setPsmFDR(GroupedFDRs);
 
 //        return GroupedFDRs;
     }
@@ -1283,35 +1302,35 @@ public abstract class OfflineFDR {
     //public void calculatePeptidePairFDR(double fdr, double safetyFactor, boolean ignoreGroups, boolean setElementFDR, FDRResult result, boolean directional) {
     public void calculatePeptidePairFDR(boolean setElementFDR, FDRResult result, FDRSettings settings, boolean ignoreGroups) {
 
-        if (result.psmFDR != null) {
-            for (PSM pp : result.psmFDR) {
+        if (result.getPsmFDR() != null) {
+            for (PSM pp : result.getPsmFDR()) {
                 pp.setFdrPeptidePair(null);
                 pp.setFdrProteinGroup(null);
             }
         }
 
-        if (result.peptidePairFDR != null) {
-            for (PeptidePair pp : result.peptidePairFDR) {
+        if (result.getPeptidePairFDR() != null) {
+            for (PeptidePair pp : result.getPeptidePairFDR()) {
                 pp.setFdrLink(null);
                 pp.setFdrProteinGroup(null);
             }
-            result.peptidePairFDR.clear();
+            result.getPeptidePairFDR().clear();
         }
 
-        if (result.proteinGroupLinkFDR != null) {
-            for (ProteinGroupLink l : result.proteinGroupLinkFDR) {
+        if (result.getProteinGroupLinkFDR() != null) {
+            for (ProteinGroupLink l : result.getProteinGroupLinkFDR()) {
                 l.setFdrPPI(null);
             }
-            result.proteinGroupLinkFDR.clear();
+            result.getProteinGroupLinkFDR().clear();
         }
-        if (result.proteinGroupFDR != null) {
-            result.proteinGroupFDR.clear();
+        if (result.getProteinGroupFDR() != null) {
+            result.getProteinGroupFDR().clear();
         }
-        if (result.proteinGroupPairFDR != null) {
-            result.proteinGroupPairFDR.clear();
+        if (result.getProteinGroupPairFDR() != null) {
+            result.getProteinGroupPairFDR().clear();
         }
 
-        FDRResultLevel<PSM> psms = result.psmFDR;
+        FDRResultLevel<PSM> psms = result.getPsmFDR();
         FDRResultLevel<PeptidePair> GroupedFDRs = new FDRResultLevel<PeptidePair>();
         GroupedFDRs.isDirectional = settings.isPeptidePairDirectional();
 
@@ -1350,11 +1369,11 @@ public abstract class OfflineFDR {
 
         for (SubGroupFdrInfo rl : GroupedFDRs.getGroups()) {
             if (rl.didntPassCheck != null) {
-                result.excludedGroups.add("PeptidePair -> " + rl.fdrGroup + "(" + rl.didntPassCheck + ")");
+                result.getExcludedGroups().add("PeptidePair -> " + rl.fdrGroup + "(" + rl.didntPassCheck + ")");
             }
         }
 
-        result.peptidePairFDR = GroupedFDRs;
+        result.setPeptidePairFDR(GroupedFDRs);
     }
 
     public HashSet<ProteinGroup> getProteinGroupsWithMISupport(FDRResult result){
@@ -1390,7 +1409,7 @@ public abstract class OfflineFDR {
     
     public void calculateProteinGroupFDR(boolean ignoreGroups, boolean setElementFDR, FDRSettings settings, FDRResult result) {
 
-        FDRResultLevel<PeptidePair> peps = result.peptidePairFDR;
+        FDRResultLevel<PeptidePair> peps = result.getPeptidePairFDR();
         FDRResultLevel<ProteinGroup> GroupedFDRs = new FDRResultLevel<ProteinGroup>();
         GroupedFDRs.isDirectional = false;
 
@@ -1445,12 +1464,24 @@ public abstract class OfflineFDR {
             pepProteinGroups.retainAll(getProteinGroupsWithMISupport(result));
             ignoreGroups = true;
         }
+        // Sequential self/between boost round 2: clear self-support flags for protein groups that
+        // did not survive round 1's full pipeline (link/PPI FDR). Survivors already carry the
+        // correct flags from data loading; groups that never validated via self-links get cleared.
+        if (selfSupportedProteinGroups != null) {
+            for (ProteinGroup pg : pepProteinGroups) {
+                if (!selfSupportedProteinGroups.contains(pg)) {
+                    pg.setInternalSupport(false);
+                    pg.setXLModSupport(false);
+                    pg.setLinearSupport(false);
+                }
+            }
+        }
         for (ProteinGroup pg : pepProteinGroups) {
             fdrgroups.add(pg.getFDRGroup());
         }
 
         if (pepProteinGroups.size() < 10 && settings.getProteinGroupFDR() < 1) {
-            result.proteinGroupFDR = GroupedFDRs;
+            result.setProteinGroupFDR(GroupedFDRs);
             return;
         }
 
@@ -1472,11 +1503,11 @@ public abstract class OfflineFDR {
 
         for (SubGroupFdrInfo rl : GroupedFDRs.getGroups()) {
             if (rl.didntPassCheck != null) {
-                result.excludedGroups.add("ProteinGroup -> " + rl.fdrGroup + "(" + rl.didntPassCheck + ")");
+                result.getExcludedGroups().add("ProteinGroup -> " + rl.fdrGroup + "(" + rl.didntPassCheck + ")");
             }
         }
 
-        result.proteinGroupFDR = GroupedFDRs;
+        result.setProteinGroupFDR(GroupedFDRs);
 //        fdrProteinGroups = fdr(fdr, safetyFactor, pepProteinGroups, nextFdrProteinGroup, protFDRGroupsInput, countFdrProteinGroup, tCountMod, dCountMod, minPepCount, ignoreGroups, setElementFDR);
 
     }
@@ -1484,14 +1515,14 @@ public abstract class OfflineFDR {
     public void calculateLinkFDR(boolean ignoreGroups, boolean setElementFDR, FDRSettings settings, FDRResult result) {
         Integer topN = settings.getScoreTopNAggregate();
 
-        if (result.proteinGroupLinkFDR != null) {
-            for (ProteinGroupLink l : result.proteinGroupLinkFDR) {
+        if (result.getProteinGroupLinkFDR() != null) {
+            for (ProteinGroupLink l : result.getProteinGroupLinkFDR()) {
                 l.setFdrPPI(null);
             }
-            result.proteinGroupLinkFDR.clear();
+            result.getProteinGroupLinkFDR().clear();
         }
-        if (result.proteinGroupPairFDR != null) {
-            result.proteinGroupPairFDR.clear();
+        if (result.getProteinGroupPairFDR() != null) {
+            result.getProteinGroupPairFDR().clear();
         }
 //        linkFDRGroupsInput = new HashMap<Integer, Integer>();
 //        nextFdrLink = new HashMap<Integer, Double>();
@@ -1502,7 +1533,7 @@ public abstract class OfflineFDR {
         int maxAmbiguity = settings.getMaxLinkAmbiguity();
         if (settings.isLinkDirectional()) {
             if (maxAmbiguity == 0) {
-                for (PeptidePair pp : result.peptidePairFDR.filteredResults()) {
+                for (PeptidePair pp : result.getPeptidePairFDR().filteredResults()) {
 
                     if (!(pp.isLinear() || pp.isNonCovalent()) || pp.isLoop()) {
                         ProteinGroupDirectionalLink dl = new ProteinGroupDirectionalLink(pp);
@@ -1512,7 +1543,7 @@ public abstract class OfflineFDR {
                 }
             } else {
 
-                for (PeptidePair pp : result.peptidePairFDR.filteredResults()) {
+                for (PeptidePair pp : result.getPeptidePairFDR().filteredResults()) {
 
                     if (!(pp.isLinear() || pp.isNonCovalent()) || pp.isLoop()) {
                         ProteinGroupDirectionalLink dl = new ProteinGroupDirectionalLink(pp);
@@ -1528,14 +1559,14 @@ public abstract class OfflineFDR {
         } else {
             if (maxAmbiguity == 0) {
                 int inpeps = 0;
-                for (PeptidePair pp : result.peptidePairFDR.filteredResults()) {
+                for (PeptidePair pp : result.getPeptidePairFDR().filteredResults()) {
                     if (!(pp.isLinear() || pp.isNonCovalent())) {
                         pp.setFdrLink(pepLinks.register(pp.getLink()));
                     }
                 }
                 Logger.getLogger(this.getClass().getName()).log(Level.FINER, "Peps forwarded to links:{0}", inpeps);
             } else {
-                for (PeptidePair pp : result.peptidePairFDR.filteredResults()) {
+                for (PeptidePair pp : result.getPeptidePairFDR().filteredResults()) {
                     if (!(pp.isLinear() || pp.isNonCovalent()) || pp.isLoop()) {
                         ProteinGroupLink l = pp.getLink();
                         if (l.getAmbiguity() <= maxAmbiguity) {
@@ -1580,11 +1611,11 @@ public abstract class OfflineFDR {
 
         for (SubGroupFdrInfo rl : GroupedFDRs.getGroups()) {
             if (rl.didntPassCheck != null) {
-                result.excludedGroups.add("ResiduePair -> " + rl.fdrGroup + "(" + rl.didntPassCheck + ")");
+                result.getExcludedGroups().add("ResiduePair -> " + rl.fdrGroup + "(" + rl.didntPassCheck + ")");
             }
         }
         
-        result.proteinGroupLinkFDR = GroupedFDRs;
+        result.setProteinGroupLinkFDR(GroupedFDRs);
 
 //        fdrProtainGroupLinks = fdr(fdr, safetyFactor, pepLinks, nextFdrLink, linkFDRGroupsInput, countFdrLink, targetPepDBSize, decoyPepDBSize, minPepCount, ignoreGroups, setElementFDR);
     }
@@ -1614,12 +1645,12 @@ public abstract class OfflineFDR {
 
         if (maxAmbiguity == 0) {
             if (directional) {
-                for (ProteinGroupLink l : result.proteinGroupLinkFDR.filteredResults()) {
+                for (ProteinGroupLink l : result.getProteinGroupLinkFDR().filteredResults()) {
                     ProteinGroupDirectionalPair dpp = new ProteinGroupDirectionalPair(l);
                     l.setFdrPPI(linkPPIs.register(dpp));
                 }
             } else {
-                for (ProteinGroupLink l : result.proteinGroupLinkFDR.filteredResults()) {
+                for (ProteinGroupLink l : result.getProteinGroupLinkFDR().filteredResults()) {
                     l.setFdrPPI(linkPPIs.register(l.getProteinGroupPair()));
                 }
 
@@ -1628,7 +1659,7 @@ public abstract class OfflineFDR {
         } else {
 
             if (directional) {
-                for (ProteinGroupLink l : result.proteinGroupLinkFDR.filteredResults()) {
+                for (ProteinGroupLink l : result.getProteinGroupLinkFDR().filteredResults()) {
 
                     if (l.getProteins().size() - 1 <= maxAmbiguity) {
                         ProteinGroupDirectionalPair dpp = new ProteinGroupDirectionalPair(l);
@@ -1637,7 +1668,7 @@ public abstract class OfflineFDR {
 
                 }
             } else {
-                for (ProteinGroupLink l : result.proteinGroupLinkFDR.filteredResults()) {
+                for (ProteinGroupLink l : result.getProteinGroupLinkFDR().filteredResults()) {
 
                     if (l.getProteins().size() - 1 <= maxAmbiguity) {
                         linkPPIs.register(l.getProteinGroupPair());
@@ -1678,20 +1709,20 @@ public abstract class OfflineFDR {
 
         for (SubGroupFdrInfo rl : GroupedFDRs.getGroups()) {
             if (rl.didntPassCheck != null) {
-                result.excludedGroups.add("ProteinGroupPair -> " + rl.fdrGroup + "(" + rl.didntPassCheck + ")");
+                result.getExcludedGroups().add("ProteinGroupPair -> " + rl.fdrGroup + "(" + rl.didntPassCheck + ")");
             }
         }
 
-        result.proteinGroupPairFDR = GroupedFDRs;
+        result.setProteinGroupPairFDR(GroupedFDRs);
     }
 
     public void filterFDRLinksByFDRProteinGroupPairs(FDRResult result) {
 
         HashedArrayList<ProteinGroupLink> keep = new HashedArrayList<ProteinGroupLink>();
-        for (ProteinGroupPair pp : result.proteinGroupPairFDR.filteredResults()) {
+        for (ProteinGroupPair pp : result.getProteinGroupPairFDR().filteredResults()) {
             keep.addAll(pp.getLinks());
         }
-        result.proteinGroupLinkFDR.retainAll(keep);
+        result.getProteinGroupLinkFDR().retainAll(keep);
 
     }
 
@@ -1703,8 +1734,8 @@ public abstract class OfflineFDR {
         HashedArrayList<PeptidePair> keep = new HashedArrayList<PeptidePair>();
         int count = 0;
         int countPeps = 0;
-        int total = result.proteinGroupLinkFDR.size();
-        for (ProteinGroupLink l : result.proteinGroupLinkFDR.filteredResults()) {
+        int total = result.getProteinGroupLinkFDR().size();
+        for (ProteinGroupLink l : result.getProteinGroupLinkFDR().filteredResults()) {
             count++;
             countPeps+=l.getPeptidePairs().size();
             if (count % 10000 == 0 && System.currentTimeMillis() - start > 5000) {
@@ -1714,7 +1745,7 @@ public abstract class OfflineFDR {
             keep.addAll(l.getPeptidePairs());
         }
         // keep all linear and non-covalent peptide pairs - as these can not be affected by the residues and protein pairs
-        for (PeptidePair pp : result.peptidePairFDR) {
+        for (PeptidePair pp : result.getPeptidePairFDR()) {
             if (pp.isLinear() || pp.isNonCovalent()) {
                 keep.add(pp);
             }
@@ -1722,7 +1753,7 @@ public abstract class OfflineFDR {
         Logger.getLogger(this.getClass().getName()).log(Level.FINER, count + " links result in "+ countPeps + " PepPairs)");
 
         
-        result.peptidePairFDR.retainAll(keep);
+        result.getPeptidePairFDR().retainAll(keep);
     }
 
     public void filterFDRPeptidePairsByFDRProteinGroups(FDRResult result) {
@@ -1731,39 +1762,39 @@ public abstract class OfflineFDR {
 
         HashedArrayList<PeptidePair> keep = new HashedArrayList<PeptidePair>();
         // turn proteinsgroups into a hashset of hashed accessionlists
-        HashSet<HashSet<String>> accessionSet = new HashSet<>(result.proteinGroupFDR.size());
-        for (ProteinGroup pg : result.proteinGroupFDR) {
+        HashSet<HashSet<String>> accessionSet = new HashSet<>(result.getProteinGroupFDR().size());
+        for (ProteinGroup pg : result.getProteinGroupFDR()) {
             accessionSet.add(pg.accessionsSet());
         }
         
-        for (PeptidePair pp : result.peptidePairFDR.filteredResults()) {
+        for (PeptidePair pp : result.getPeptidePairFDR().filteredResults()) {
             if (accessionSet.contains(pp.getPeptide1().getProteinGroup().accessionsSet()))
                 if (!(pp.isLinear() || pp.isLoop())) {
                     if (accessionSet.contains(pp.getPeptide2().getProteinGroup().accessionsSet())) {
-                        pp.setFdrProteinGroup(result.proteinGroupFDR.filteredGet(pp.getPeptide1().getProteinGroup()));
-                        pp.setFdrProteinGroup(result.proteinGroupFDR.filteredGet(pp.getPeptide2().getProteinGroup()));
+                        pp.setFdrProteinGroup(result.getProteinGroupFDR().filteredGet(pp.getPeptide1().getProteinGroup()));
+                        pp.setFdrProteinGroup(result.getProteinGroupFDR().filteredGet(pp.getPeptide2().getProteinGroup()));
                         keep.add(pp);
                     }
                 } else {
-                    pp.setFdrProteinGroup(result.proteinGroupFDR.filteredGet(pp.getPeptide1().getProteinGroup()));
+                    pp.setFdrProteinGroup(result.getProteinGroupFDR().filteredGet(pp.getPeptide1().getProteinGroup()));
                     keep.add(pp);
                 }
         }
 //        for (ProteinGroup pg : result.proteinGroupFDR.filteredResults()) {
 //            keep.addAll(pg.getPeptidePairs());
 //        }
-        result.peptidePairFDR.retainAll(keep);
+        result.getPeptidePairFDR().retainAll(keep);
     }
 
     public void filterFDRProteinGroupsByFDRPeptidePairs(FDRResult result) {
         HashedArrayList<ProteinGroup> keep = new HashedArrayList<ProteinGroup>();
 
-        for (PeptidePair pp : result.peptidePairFDR.filteredResults()) {
+        for (PeptidePair pp : result.getPeptidePairFDR().filteredResults()) {
             keep.add(pp.getProteinGroup1());
             keep.add(pp.getProteinGroup2());
         }
 
-        result.proteinGroupFDR.retainAll(keep);
+        result.getProteinGroupFDR().retainAll(keep);
     }
 
     public void filterFDRPSMByFDRPeptidePairs(FDRResult result) {
@@ -1771,11 +1802,11 @@ public abstract class OfflineFDR {
 //        SubGroupFdrInfo<PeptidePair> pps = joinSubFDRInfos(result.peptidePairFDR, true) ;
 
         HashedArrayList<PSM> keep = new HashedArrayList<PSM>();
-        for (PeptidePair pp : result.peptidePairFDR.filteredResults()) {
+        for (PeptidePair pp : result.getPeptidePairFDR().filteredResults()) {
             keep.addAll(pp.getAllPSMs());
         }
 
-        result.psmFDR.retainAll(keep);
+        result.getPsmFDR().retainAll(keep);
     }
 
     public void setSettings(FDRSettings settings) {
@@ -1786,46 +1817,46 @@ public abstract class OfflineFDR {
         FDRResult result = new FDRResult();
         this.settings = settings;
         boolean ignoreGroups = this.ignoreGroupsSetting;
-        result.reportFactor = settings.getReportFactor();
+        result.setReportFactor(settings.getReportFactor());
         //reset();
-        result.excludedGroups = new ArrayList<>();
+        result.setExcludedGroups(new ArrayList<>());
 
         Logger.getLogger(this.getClass().getName()).log(Level.INFO, "Input PSM :" + getAllPSMs().size() + "\n calculation psm-fdr");
         calculatePSMFDR(setElementFDR, ignoreGroups, result, settings);
 
-        Logger.getLogger(this.getClass().getName()).log(Level.INFO, "fdr PSM :" + result.psmFDR.getResultCount() + "\n calculation peptidepair-fdr");
+        Logger.getLogger(this.getClass().getName()).log(Level.INFO, "fdr PSM :" + result.getPsmFDR().getResultCount() + "\n calculation peptidepair-fdr");
         calculatePeptidePairFDR(setElementFDR, result, settings, ignoreGroups);
 
-        Logger.getLogger(this.getClass().getName()).log(Level.INFO, "fdr peptide-pairs :" + result.peptidePairFDR.getResultCount() + "\n calculation protein-group-fdr");
+        Logger.getLogger(this.getClass().getName()).log(Level.INFO, "fdr peptide-pairs :" + result.getPeptidePairFDR().getResultCount() + "\n calculation protein-group-fdr");
         calculateProteinGroupFDR(ignoreGroups, setElementFDR, settings, result);
 
-        Logger.getLogger(this.getClass().getName()).log(Level.INFO, "fdr protein groups :" + result.proteinGroupFDR.getResultCount() + "\n filtering peptide pairs by protein groups");
+        Logger.getLogger(this.getClass().getName()).log(Level.INFO, "fdr protein groups :" + result.getProteinGroupFDR().getResultCount() + "\n filtering peptide pairs by protein groups");
         filterFDRPeptidePairsByFDRProteinGroups(result);
 
-        Logger.getLogger(this.getClass().getName()).log(Level.INFO, "fdr peptide-pairs :" + result.peptidePairFDR.getResultCount() + "\n calculation link-fdr");
+        Logger.getLogger(this.getClass().getName()).log(Level.INFO, "fdr peptide-pairs :" + result.getPeptidePairFDR().getResultCount() + "\n calculation link-fdr");
         calculateLinkFDR(ignoreGroups, setElementFDR, settings, result);
 
-        Logger.getLogger(this.getClass().getName()).log(Level.INFO, "fdr links :" + result.proteinGroupLinkFDR.getResultCount() + "\n calculation protein-group-pair-fdr");
+        Logger.getLogger(this.getClass().getName()).log(Level.INFO, "fdr links :" + result.getProteinGroupLinkFDR().getResultCount() + "\n calculation protein-group-pair-fdr");
         calculateProteinGroupPairFDR(ignoreGroups, setElementFDR, settings, result);
 
-        Logger.getLogger(this.getClass().getName()).log(Level.INFO, "fdr protein-group-pairs :" + result.proteinGroupPairFDR.getResultCount() + "\n filtering links by protein-group-pairs");
+        Logger.getLogger(this.getClass().getName()).log(Level.INFO, "fdr protein-group-pairs :" + result.getProteinGroupPairFDR().getResultCount() + "\n filtering links by protein-group-pairs");
         filterFDRLinksByFDRProteinGroupPairs(result);
 
-        Logger.getLogger(this.getClass().getName()).log(Level.INFO, "fdr links :" + result.proteinGroupLinkFDR.getResultCount() + "\n filtering peptide pairs by links");
+        Logger.getLogger(this.getClass().getName()).log(Level.INFO, "fdr links :" + result.getProteinGroupLinkFDR().getResultCount() + "\n filtering peptide pairs by links");
         filterFDRPeptidePairsByFDRProteinGroupLinks(result);
 
-        Logger.getLogger(this.getClass().getName()).log(Level.INFO, "fdr peptide-pairs :" + result.peptidePairFDR.getResultCount() + "\n filtering psm by peptide pairs");
+        Logger.getLogger(this.getClass().getName()).log(Level.INFO, "fdr peptide-pairs :" + result.getPeptidePairFDR().getResultCount() + "\n filtering psm by peptide pairs");
         filterFDRPSMByFDRPeptidePairs(result);
 
-        Logger.getLogger(this.getClass().getName()).log(Level.INFO, "fdr psms :" + result.psmFDR.getResultCount() + "\n filtering ProteinGroups by peptide pairs");
+        Logger.getLogger(this.getClass().getName()).log(Level.INFO, "fdr psms :" + result.getPsmFDR().getResultCount() + "\n filtering ProteinGroups by peptide pairs");
         filterFDRProteinGroupsByFDRPeptidePairs(result);
-        Logger.getLogger(this.getClass().getName()).log(Level.INFO, "fdr protein groups :" + result.proteinGroupFDR.getResultCount());
+        Logger.getLogger(this.getClass().getName()).log(Level.INFO, "fdr protein groups :" + result.getProteinGroupFDR().getResultCount());
 
-        if (!result.excludedGroups.isEmpty()) {
+        if (!result.getExcludedGroups().isEmpty()) {
             if (settings.ignoreValidityChecks()) {
-                Logger.getLogger(this.getClass().getName()).log(Level.WARNING, "For some subgroups the FDR calculation is likely unreliable:\n" + MyArrayUtils.toString(result.excludedGroups, ";\n"));
+                Logger.getLogger(this.getClass().getName()).log(Level.WARNING, "For some subgroups the FDR calculation is likely unreliable:\n" + MyArrayUtils.toString(result.getExcludedGroups(), ";\n"));
             } else {
-                Logger.getLogger(this.getClass().getName()).log(Level.WARNING, "Some FDR groups where ignored as being unreliable:\n" + MyArrayUtils.toString(result.excludedGroups, ";\n"));
+                Logger.getLogger(this.getClass().getName()).log(Level.WARNING, "Some FDR groups where ignored as being unreliable:\n" + MyArrayUtils.toString(result.getExcludedGroups(), ";\n"));
             }
         }
 
@@ -1838,15 +1869,15 @@ public abstract class OfflineFDR {
         sb.append("Input PSMs:");
         sb.append(getAllPSMs().size());
         sb.append(";  FDR PSM:");
-        sb.append(result.psmFDR.getResultCount());
+        sb.append(result.getPsmFDR().getResultCount());
         sb.append(";  FDR PeptidePairs:");
-        sb.append(result.peptidePairFDR.getResultCount());
+        sb.append(result.getPeptidePairFDR().getResultCount());
         sb.append(";  FDR ProteinGroups:");
-        sb.append(result.proteinGroupFDR.getResultCount());
+        sb.append(result.getProteinGroupFDR().getResultCount());
         sb.append(";  FDR Links:");
-        sb.append(result.proteinGroupLinkFDR.getResultCount());
+        sb.append(result.getProteinGroupLinkFDR().getResultCount());
         sb.append(";  FDR PPIs:");
-        sb.append(result.proteinGroupPairFDR.getResultCount());
+        sb.append(result.getProteinGroupPairFDR().getResultCount());
         return sb.toString();
     }
 
@@ -1903,7 +1934,7 @@ public abstract class OfflineFDR {
             for (PSM psm : this.allPSMs) {
                 
                 psmOut.print(csvFormater.valuesToString(getPSMOutputLine(psm)));
-                if (result.psmFDR.filteredContains(psm))
+                if (result.getPsmFDR().filteredContains(psm))
                      psmOut.println(seperator + "+");
                 else
                      psmOut.println(seperator);
@@ -1938,8 +1969,8 @@ public abstract class OfflineFDR {
             xiviewOut = NullOutputStream.NULLPRINTWRITER;
         }
 
-        ArrayList<PSM> psms = new ArrayList<PSM>(result.psmFDR.getResultCount());
-        for (SubGroupFdrInfo g : result.psmFDR.getGroups()) {
+        ArrayList<PSM> psms = new ArrayList<PSM>(result.getPsmFDR().getResultCount());
+        for (SubGroupFdrInfo g : result.getPsmFDR().getGroups()) {
             psms.addAll(g.filteredResult);
         }
 
@@ -2034,8 +2065,8 @@ public abstract class OfflineFDR {
             }
         }
 
-        ArrayList<PeptidePair> peps = new ArrayList<PeptidePair>(result.peptidePairFDR.getResultCount());
-        for (SubGroupFdrInfo g : result.peptidePairFDR.getGroups()) {
+        ArrayList<PeptidePair> peps = new ArrayList<PeptidePair>(result.getPeptidePairFDR().getResultCount());
+        for (SubGroupFdrInfo g : result.getPeptidePairFDR().getGroups()) {
             peps.addAll(g.filteredResult);
         }
 
@@ -2175,8 +2206,8 @@ public abstract class OfflineFDR {
         }
 
         CountOccurence<String> fdrLinkGroupCounts = new CountOccurence<String>();
-        ArrayList<ProteinGroupLink> links = new ArrayList<ProteinGroupLink>(result.proteinGroupLinkFDR.getResultCount());
-        for (SubGroupFdrInfo g : result.proteinGroupLinkFDR.getGroups()) {
+        ArrayList<ProteinGroupLink> links = new ArrayList<ProteinGroupLink>(result.getProteinGroupLinkFDR().getResultCount());
+        for (SubGroupFdrInfo g : result.getProteinGroupLinkFDR().getGroups()) {
             links.addAll(g.filteredResult);
         }
 
@@ -2246,8 +2277,8 @@ public abstract class OfflineFDR {
         }
 
         CountOccurence<String> fdrPPIGroupCounts = new CountOccurence<String>();
-        ArrayList<ProteinGroupPair> ppis = new ArrayList<ProteinGroupPair>(result.proteinGroupPairFDR.getResultCount());
-        for (SubGroupFdrInfo g : result.proteinGroupPairFDR.getGroups()) {
+        ArrayList<ProteinGroupPair> ppis = new ArrayList<ProteinGroupPair>(result.getProteinGroupPairFDR().getResultCount());
+        for (SubGroupFdrInfo g : result.getProteinGroupPairFDR().getGroups()) {
             ppis.addAll(g.filteredResult);
         }
 
@@ -2317,9 +2348,38 @@ public abstract class OfflineFDR {
         }
 
         CountOccurence<String> fdrProteinGroupCounts = new CountOccurence<String>();
-        ArrayList<ProteinGroup> pgs = new ArrayList<ProteinGroup>(result.proteinGroupFDR.getResultCount());
-        for (SubGroupFdrInfo g : result.proteinGroupFDR.getGroups()) {
-            pgs.addAll(g.filteredResult);
+
+        // In sequential self/between boost mode: report the union of both rounds' protein groups
+        // with a BoostRound flag ("Self", "Between", "Self+Between").
+        // In normal mode: use the merged result as before.
+        boolean dualBoostMode = result.getSelfBoostStatus() != null;
+        java.util.LinkedHashMap<ProteinGroup, String> pgBoostRound = null;
+        ArrayList<ProteinGroup> pgs;
+
+        if (dualBoostMode) {
+            HashSet<ProteinGroup> selfSet = new HashSet<>();
+            for (ProteinGroup pg : result.getSelfBoostStatus().result.getProteinGroupFDR().filteredResults()) {
+                selfSet.add(pg);
+            }
+            HashSet<ProteinGroup> betweenSet = new HashSet<>();
+            for (ProteinGroup pg : result.getBetweenBoostStatus().result.getProteinGroupFDR().filteredResults()) {
+                betweenSet.add(pg);
+            }
+            pgBoostRound = new java.util.LinkedHashMap<>();
+            for (ProteinGroup pg : selfSet) {
+                pgBoostRound.put(pg, betweenSet.contains(pg) ? "Self+Between" : "Self");
+            }
+            for (ProteinGroup pg : betweenSet) {
+                if (!selfSet.contains(pg)) {
+                    pgBoostRound.put(pg, "Between");
+                }
+            }
+            pgs = new ArrayList<>(pgBoostRound.keySet());
+        } else {
+            pgs = new ArrayList<ProteinGroup>(result.getProteinGroupFDR().getResultCount());
+            for (SubGroupFdrInfo g : result.getProteinGroupFDR().getGroups()) {
+                pgs.addAll(g.filteredResult);
+            }
         }
 
         java.util.Collections.sort(pgs, new Comparator<ProteinGroup>() {
@@ -2329,8 +2389,6 @@ public abstract class OfflineFDR {
                 return Double.compare(o2.getScore(), o1.getScore());
             }
         });
-//        if (!isPSMScoreHighBetter())
-//            java.util.Collections.reverse(fdrProteinGroups);
 
         int proteinGroupT = 0;
         int proteinGroupD = 0;
@@ -2346,8 +2404,7 @@ public abstract class OfflineFDR {
                 return;
             }
 
-            
-            pgOut.println(csvFormater.valuesToString(getProteinGroupOutputHeader()));
+            pgOut.println(csvFormater.valuesToString(getProteinGroupOutputHeader(dualBoostMode)));
         } else {
             pgOut = NullOutputStream.NULLPRINTWRITER;
         }
@@ -2355,7 +2412,11 @@ public abstract class OfflineFDR {
         for (ProteinGroup pg : pgs) {
             fdrProteinGroupCounts.add(pg.getFDRGroup());
             if (!csvSummaryOnly) {
-                pgOut.println(csvFormater.valuesToString(getProteinGroupOutput(pg)));
+                if (dualBoostMode) {
+                    pgOut.println(csvFormater.valuesToString(getProteinGroupOutput(pg, pgBoostRound.get(pg))));
+                } else {
+                    pgOut.println(csvFormater.valuesToString(getProteinGroupOutput(pg)));
+                }
             }
             if (pg.isDecoy()) {
                 proteinGroupD++;
@@ -2405,7 +2466,7 @@ public abstract class OfflineFDR {
         summaryOut.println("\n\n---------------- Filter applied prior FDR----------------------");
         //summaryOut.println("\n\"max next level fdr factor (report-factor):\"" + seperator + result.reportFactor);
         summaryOut.println("\"minimum peptide length\"" + seperator + "" + (m_minPepLength <= 1 ? "unlimited" : m_minPepLength));
-        if (result.uniquePSMs) {
+        if (result.isUniquePSMs()) {
             summaryOut.println("\"unique PSMs\",, \"(only best scoring CSM/PSM for each peptide + link + charge + modification combination is kept for FDR calculation)\"");
         } else {
             summaryOut.println();
@@ -2476,7 +2537,7 @@ public abstract class OfflineFDR {
         summaryOut.println();
         if (settings.doOptimize() != null) {
             summaryOut.println("\"Boost\"" + seperator + "\"" + settings.doOptimize().m_shortname + "\"," );
-            summaryOut.println("\"Primary objective\"" + seperator + (settings.getBoostBetween() ? "\"between\"" : "\"total number\""));
+            summaryOut.println("\"Primary objective\"" + seperator + (result.getSelfBoostStatus() != null ? "\"sequential self+between\"" : settings.getBoostMode() == FDRSettings.BoostMode.BETWEEN ? "\"between\"" : "\"total number\""));
             summaryOut.println("\"Boost steps\":" + seperator + "" + settings.getBoostingSteps());
             summaryOut.println("\"Boost Include\"" + seperator + "\""
                     + (settings.boostDeltaScore() ? "delta score;" : "")
@@ -2493,11 +2554,18 @@ public abstract class OfflineFDR {
             } else {
                 summaryOut.println("\"Boost prefilter and FDR filter together\"");
             }
+            if (result.getSelfBoostStatus() != null) {
+                summaryOut.println();
+                summaryOut.println("\"--- Sequential boost: Round 1 (Self) converged settings ---\"");
+                writeBoostRoundSettings(summaryOut, seperator, result.getSelfBoostStatus());
+                summaryOut.println("\"--- Sequential boost: Round 2 (Between) converged settings ---\"");
+                writeBoostRoundSettings(summaryOut, seperator, result.getBetweenBoostStatus());
+            }
         }
         summaryOut.println();
 
 
-        
+
 
         summaryOut.println("\n\n\n\"----------------Detailed summary for each FDR level----------------------\"");
         summaryOut.println("\"Per level for each group following information are provided:\"");
@@ -2512,7 +2580,7 @@ public abstract class OfflineFDR {
         summaryOut.println("\"lower FDR\", \"The next FDR < target FDR, that could be calculated (to give an idea of the precision of the FDR calculation)\"");
         summaryOut.println("\"higher FDR\", \"The next FDR > targetFDR, that could be calculated (to give an idea of the precision of the FDR calculation)\"");
         summaryOut.println("\"final\", \"The number of matches passing this *AND* the higher level FDR filter\"");
-        
+
         summaryOut.println("\n\"--------------------------------------\"");
 //        summaryOut.println("\n\"linear fdr psm\"" + seperator + "" + (psmLinearT + psmLinearD) + "\n\"linear fdr peptide pairs\"" + seperator + "" + (pepLinearT + pepLinearD) + "\n\nfdr protein groups" + seperator + "" + fdrProteinGroups.size());
         String header = "Petide Spectrum Matches detailed summary";
@@ -2520,7 +2588,7 @@ public abstract class OfflineFDR {
 //        for (String k : result.psmFDR.getGroupIDs()) {
 //            groups.put(k,PSM.getFDRGroupName(k));
 //        }
-        FDRResultLevel level = result.psmFDR;
+        FDRResultLevel level = result.getPsmFDR();
         levelSummary(summaryOut, header, level, seperator);
 
         summaryOut.println("\"--------------------------------------\"");
@@ -2529,7 +2597,7 @@ public abstract class OfflineFDR {
 //        for (Integer k : result.peptidePairFDR.getGroupIDs()) {
 //            groups.put(k,PeptidePair.getFDRGroupName(k));
 //        }
-        level = result.peptidePairFDR;
+        level = result.getPeptidePairFDR();
         levelSummary(summaryOut, header, level, seperator);
 
         summaryOut.println("\"--------------------------------------\"");
@@ -2538,18 +2606,18 @@ public abstract class OfflineFDR {
 //        for (Integer k : result.proteinGroupFDR.getGroupIDs()) {
 //            groups.put(k,ProteinGroup.getFDRGroupName(k));
 //        }
-        level = result.proteinGroupFDR;
+        level = result.getProteinGroupFDR();
         levelSummary(summaryOut, header, level, seperator);
 
         summaryOut.println("\"--------------------------------------\"");
         header = "Protein group links detailed summary";
-        level = result.proteinGroupLinkFDR;
+        level = result.getProteinGroupLinkFDR();
         levelSummary(summaryOut, header, level, seperator);
 
         summaryOut.println("\"--------------------------------------\"");
         header = "Protein group pairs detailed summary";
 
-        level = result.proteinGroupPairFDR;
+        level = result.getProteinGroupPairFDR();
         levelSummary(summaryOut, header, level, seperator);
 
         summaryOut.flush();
@@ -2564,8 +2632,8 @@ public abstract class OfflineFDR {
 
         CountOccurence<String> fdrPSMGroupCounts = new CountOccurence<String>();
 
-        ArrayList<PSM> psms = new ArrayList<PSM>(result.psmFDR.getResultCount());
-        for (SubGroupFdrInfo g : result.psmFDR.getGroups()) {
+        ArrayList<PSM> psms = new ArrayList<PSM>(result.getPsmFDR().getResultCount());
+        for (SubGroupFdrInfo g : result.getPsmFDR().getGroups()) {
             psms.addAll(g.filteredResult);
         }
 
@@ -2583,7 +2651,7 @@ public abstract class OfflineFDR {
         int psmLinearT = 0;
         int psmLinearD = 0;
 
-        for (SubGroupFdrInfo<PSM> g : result.psmFDR.getGroups()) {
+        for (SubGroupFdrInfo<PSM> g : result.getPsmFDR().getGroups()) {
             for (PSM pp : g.filteredResult) {
                 fdrPSMGroupCounts.add(pp.getFDRGroup());
                 if (pp.isLinear()) {
@@ -2621,8 +2689,8 @@ public abstract class OfflineFDR {
             }
         }
 
-        ArrayList<PeptidePair> peps = new ArrayList<PeptidePair>(result.peptidePairFDR.getResultCount());
-        for (SubGroupFdrInfo g : result.peptidePairFDR.getGroups()) {
+        ArrayList<PeptidePair> peps = new ArrayList<PeptidePair>(result.getPeptidePairFDR().getResultCount());
+        for (SubGroupFdrInfo g : result.getPeptidePairFDR().getGroups()) {
             peps.addAll(g.filteredResult);
         }
 
@@ -2684,8 +2752,8 @@ public abstract class OfflineFDR {
         }
 
         CountOccurence<String> fdrLinkGroupCounts = new CountOccurence<String>();
-        ArrayList<ProteinGroupLink> links = new ArrayList<ProteinGroupLink>(result.proteinGroupLinkFDR.getResultCount());
-        for (SubGroupFdrInfo g : result.proteinGroupLinkFDR.getGroups()) {
+        ArrayList<ProteinGroupLink> links = new ArrayList<ProteinGroupLink>(result.getProteinGroupLinkFDR().getResultCount());
+        for (SubGroupFdrInfo g : result.getProteinGroupLinkFDR().getGroups()) {
             links.addAll(g.filteredResult);
         }
 
@@ -2724,8 +2792,8 @@ public abstract class OfflineFDR {
         }
 
         CountOccurence<String> fdrPPIGroupCounts = new CountOccurence<String>();
-        ArrayList<ProteinGroupPair> ppis = new ArrayList<ProteinGroupPair>(result.proteinGroupPairFDR.getResultCount());
-        for (SubGroupFdrInfo g : result.proteinGroupPairFDR.getGroups()) {
+        ArrayList<ProteinGroupPair> ppis = new ArrayList<ProteinGroupPair>(result.getProteinGroupPairFDR().getResultCount());
+        for (SubGroupFdrInfo g : result.getProteinGroupPairFDR().getGroups()) {
             ppis.addAll(g.filteredResult);
         }
 
@@ -2762,8 +2830,8 @@ public abstract class OfflineFDR {
         }
 
         CountOccurence<String> fdrProteinGroupCounts = new CountOccurence<String>();
-        ArrayList<ProteinGroup> pgs = new ArrayList<ProteinGroup>(result.proteinGroupFDR.getResultCount());
-        for (SubGroupFdrInfo g : result.proteinGroupFDR.getGroups()) {
+        ArrayList<ProteinGroup> pgs = new ArrayList<ProteinGroup>(result.getProteinGroupFDR().getResultCount());
+        for (SubGroupFdrInfo g : result.getProteinGroupFDR().getGroups()) {
             pgs.addAll(g.filteredResult);
         }
 
@@ -2797,7 +2865,7 @@ public abstract class OfflineFDR {
         summaryOut.println("\n\n---------------- Filter applied prior FDR----------------------");
         //summaryOut.println("\n\"max next level fdr factor (report-factor):\"" + seperator + result.reportFactor);
         summaryOut.println("\"minimum peptide length\"" + seperator + "" + (m_minPepLength <= 1 ? "unlimited" : m_minPepLength));
-        if (result.uniquePSMs) {
+        if (result.isUniquePSMs()) {
             summaryOut.println("\"unique PSMs\",, \"(only best scoring CSM/PSM for each peptide + link + charge + modification combination is kept for FDR calculation)\"");
         } else {
             summaryOut.println();
@@ -2872,7 +2940,7 @@ public abstract class OfflineFDR {
         summaryOut.println();
         if (settings.doOptimize() != null) {
             summaryOut.println("\"Boost\"" + seperator + "\"" + settings.doOptimize().m_shortname + "\"," );
-            summaryOut.println("\"Primary objective\"" + seperator + (settings.getBoostBetween() ? "\"between\"" : "\"total number\""));
+            summaryOut.println("\"Primary objective\"" + seperator + (result.getSelfBoostStatus() != null ? "\"sequential self+between\"" : settings.getBoostMode() == FDRSettings.BoostMode.BETWEEN ? "\"between\"" : "\"total number\""));
             summaryOut.println("\"Boost steps\":" + seperator + "" + settings.getBoostingSteps());
             summaryOut.println("\"Boost Include\"" + seperator + "\""
                     + (settings.boostDeltaScore() ? "delta score;" : "")
@@ -2889,11 +2957,18 @@ public abstract class OfflineFDR {
             } else {
                 summaryOut.println("\"Boost prefilter and FDR filter together\"");
             }
+            if (result.getSelfBoostStatus() != null) {
+                summaryOut.println();
+                summaryOut.println("\"--- Sequential boost: Round 1 (Self) converged settings ---\"");
+                writeBoostRoundSettings(summaryOut, seperator, result.getSelfBoostStatus());
+                summaryOut.println("\"--- Sequential boost: Round 2 (Between) converged settings ---\"");
+                writeBoostRoundSettings(summaryOut, seperator, result.getBetweenBoostStatus());
+            }
         }
         summaryOut.println();
 
 
-        
+
 
         summaryOut.println("\n\n\n\"----------------Detailed summary for each FDR level----------------------\"");
         summaryOut.println("\"Per level for each group following information are provided:\"");
@@ -2916,7 +2991,7 @@ public abstract class OfflineFDR {
 //        for (String k : result.psmFDR.getGroupIDs()) {
 //            groups.put(k,PSM.getFDRGroupName(k));
 //        }
-        FDRResultLevel level = result.psmFDR;
+        FDRResultLevel level = result.getPsmFDR();
         levelSummary(summaryOut, header, level, seperator);
 
         summaryOut.println("\"--------------------------------------\"");
@@ -2925,7 +3000,7 @@ public abstract class OfflineFDR {
 //        for (Integer k : result.peptidePairFDR.getGroupIDs()) {
 //            groups.put(k,PeptidePair.getFDRGroupName(k));
 //        }
-        level = result.peptidePairFDR;
+        level = result.getPeptidePairFDR();
         levelSummary(summaryOut, header, level, seperator);
 
         summaryOut.println("\"--------------------------------------\"");
@@ -2934,18 +3009,18 @@ public abstract class OfflineFDR {
 //        for (Integer k : result.proteinGroupFDR.getGroupIDs()) {
 //            groups.put(k,ProteinGroup.getFDRGroupName(k));
 //        }
-        level = result.proteinGroupFDR;
+        level = result.getProteinGroupFDR();
         levelSummary(summaryOut, header, level, seperator);
 
         summaryOut.println("\"--------------------------------------\"");
         header = "Protein group links detailed summary";
-        level = result.proteinGroupLinkFDR;
+        level = result.getProteinGroupLinkFDR();
         levelSummary(summaryOut, header, level, seperator);
 
         summaryOut.println("\"--------------------------------------\"");
         header = "Protein group pairs detailed summary";
 
-        level = result.proteinGroupPairFDR;
+        level = result.getProteinGroupPairFDR();
         levelSummary(summaryOut, header, level, seperator);
         summaryOut.flush();
         summaryOut.close();
@@ -2953,20 +3028,34 @@ public abstract class OfflineFDR {
     }
     
     
+    private void writeBoostRoundSettings(PrintWriter out, String sep, MaximisingStatus s) {
+        out.println("\"PSM FDR\"" + sep + s.showPSMFDR);
+        out.println("\"Peptide Pair FDR\"" + sep + s.showPepFDR);
+        out.println("\"Protein Group FDR\"" + sep + s.showProtFDR);
+        out.println("\"Residue Pair FDR\"" + sep + s.showLinkFDR);
+        out.println("\"Protein Group Pair FDR\"" + sep + s.showProtPairFDR);
+        out.println("\"minimum score >=\"" + sep + s.showMinScore);
+        out.println("\"delta/score >=\"" + sep + s.showDelta);
+        out.println("\"minimum peptide coverage >=\"" + sep + s.showPepCoverage);
+        out.println("\"minimum fragments per peptide >=\"" + sep + s.showMinFrags);
+        out.println("\"minimum peptide stubs >=\"" + sep + s.showMinStubs);
+        out.println("\"minimum peptide doublets >=\"" + sep + s.showMinDoublets);
+    }
+
     protected void writeOutBasicFDRSettings(PrintWriter summaryOut, String seperator, FDRResult result, boolean minPep) {
         summaryOut.println(",\"Target FDRs:\"" + (minPep ? seperator + "Minimum supporting peptides" :""));
         summaryOut.println("psm" + seperator + " " +
-                (result.psmFDR.getTargetFDR()>1 ? "unrestricted" : "" + result.psmFDR.getTargetFDR()));
+                (result.getPsmFDR().getTargetFDR()>1 ? "unrestricted" : "" + result.getPsmFDR().getTargetFDR()));
         summaryOut.println("\"peptide pair\"" + seperator + " " +
-                (result.peptidePairFDR.getTargetFDR() > 1 ? "unrestricted" : "" + result.peptidePairFDR.getTargetFDR()));
+                (result.getPeptidePairFDR().getTargetFDR() > 1 ? "unrestricted" : "" + result.getPeptidePairFDR().getTargetFDR()));
         summaryOut.println("\"protein group\"" + seperator + " " +
-                (result.proteinGroupFDR.getTargetFDR() > 1 ? "unrestricted" : "" + result.proteinGroupFDR.getTargetFDR()) +
+                (result.getProteinGroupFDR().getTargetFDR() > 1 ? "unrestricted" : "" + result.getProteinGroupFDR().getTargetFDR()) +
                 (minPep ? seperator + getMinPepPerProteinGroup() : ""));
         summaryOut.println("Residue Pair" + seperator + " " +
-                (result.proteinGroupLinkFDR.getTargetFDR() > 1? "unrestricted" : "" + result.proteinGroupLinkFDR.getTargetFDR()) +
+                (result.getProteinGroupLinkFDR().getTargetFDR() > 1? "unrestricted" : "" + result.getProteinGroupLinkFDR().getTargetFDR()) +
                 (minPep ? seperator + getMinPepPerProteinGroupLink() : ""));
         summaryOut.println("\"Protein Group Pair\"" + seperator + " " +
-                (result.proteinGroupPairFDR.getTargetFDR() >1 ? "unrestricted" : "" + result.proteinGroupPairFDR.getTargetFDR()) +
+                (result.getProteinGroupPairFDR().getTargetFDR() >1 ? "unrestricted" : "" + result.getProteinGroupPairFDR().getTargetFDR()) +
                 (minPep ? seperator + getMinPepPerProteinGroupPair() : ""));
     }
 
@@ -3214,11 +3303,11 @@ public abstract class OfflineFDR {
      */
     public <T extends AbstractFDRElement<T>> String checkValid(SubGroupFdrInfo<T> info, double factor, int minTDCount) {
         // make sure we have enough targets that we could theoretically thsi number of TD 
-        if (info.resultTT * info.targteFDR < (double) minTDCount) {
+        if (info.resultTT * info.targetFDR < (double) minTDCount) {
             return "not enough TT";
         }
 
-        if ((info.targteFDR < 1 && info.resultTT < info.resultDD) || info.resultTD < info.resultDD) {
+        if ((info.targetFDR < 1 && info.resultTT < info.resultDD) || info.resultTD < info.resultDD) {
             return "to many DD";
         }
 
@@ -3226,7 +3315,7 @@ public abstract class OfflineFDR {
             return "resolution to bad";
         }
 
-        if (info.resultTT * info.targteFDR < factor * 10) {
+        if (info.resultTT * info.targetFDR < factor * 10) {
             return "resolution to bad";
         }
 
@@ -3463,7 +3552,7 @@ public abstract class OfflineFDR {
                 + "                         calculation\n"
                 + "--csvOutDir=X            where to write the output files\n"
                 + "--csvBaseName=X          each file will be prepended with \n"
-                + "                         this name"
+                + "                         this name\n"
                 + "--csvSummaryOnly         don;t write the actuall results but\n"
                 + "                         only the summary\n"
                 + "--singleSummary          if fdrs where given in ranges all\n"
@@ -3475,9 +3564,11 @@ public abstract class OfflineFDR {
                 + "                         according to this locale\n"
                 + "--boost=(pep|link|prot)  boost results on the given level\n"
                 + "--boost-between          when boosting try to maximize betweens\n"
+                + "--boost-selfbetween      when boosting first maximize self links,\n"
+                + "                         then maximize betweens\n"
                 + "--validitycheck          only accept subgroups that pass the validity check\n"
-                + "--validitymindecoy=X     sub groups are considered invalid if "
-                + "                         not at least X(default: 2) TD macthes "
+                + "--validitymindecoy=X     sub groups are considered invalid if\n"
+                + "                         not at least X(default: 2) TD macthes\n"
                 + "                         would be possible\n"
                 + "--single-step-boost      if certain columns are found these are\n"
                 + "                         used boosting as well. By default they\n"
@@ -3763,7 +3854,9 @@ public abstract class OfflineFDR {
                 }
                 settings.doOptimize(maximizeWhat);
             } else if (arg.toLowerCase().equals("--boost-between")) {
-                settings.setBoostBetween(true);
+                settings.setBoostMode(FDRSettings.BoostMode.BETWEEN);
+            } else if (arg.toLowerCase().equals("--boost-selfbetween")) {
+                settings.setBoostMode(FDRSettings.BoostMode.SELFBETWEEN);
             } else if (arg.toLowerCase().equals("--single-step-boost")) {
                 settings.twoStepOptimization(false);
 
@@ -4952,6 +5045,19 @@ public abstract class OfflineFDR {
         return ret;
     }
 
+    protected ArrayList<String> getProteinGroupOutputHeader(boolean withBoostRound) {
+        ArrayList<String> ret = getProteinGroupOutputHeader();
+        if (withBoostRound)
+            ret.add("BoostRound");
+        return ret;
+    }
+
+    protected ArrayList<String> getProteinGroupOutput(ProteinGroup pg, String boostRound) {
+        ArrayList<String> ret = getProteinGroupOutput(pg);
+        ret.add(boostRound);
+        return ret;
+    }
+
     protected String getPeptideSequence(Peptide p) {
         return p.getSequence();
     }
@@ -5296,13 +5402,13 @@ public abstract class OfflineFDR {
 
                                             settings.setPSMFDR(psmFDRInfo.getCurrentFDR());
                                             this.calculatePSMFDR(true, ignoreGroups, result, settings);
-                                            psmFDRInfo.setCountsPrefilter(result.psmFDR);
+                                            psmFDRInfo.setCountsPrefilter(result.getPsmFDR());
 
                                             if (stopMaximizing) {
                                                 break pepMinScoreLoop;
                                             }
                                             // if we don't get PSM - stop looking at later stages
-                                            if (result.psmFDR.getResultCount() == 0) {
+                                            if (result.getPsmFDR().getResultCount() == 0) {
                                                 break psmloop;
                                             }
 
@@ -5317,10 +5423,10 @@ public abstract class OfflineFDR {
                                                     this.calculatePeptidePairFDR(true, result, settings, ignoreGroups);
 
                                                     // if we don't get peptide pairs - stop looking at later stages
-                                                    if (result.peptidePairFDR.getResultCount() == 0) {
+                                                    if (result.getPeptidePairFDR().getResultCount() == 0) {
                                                         break peploop;
                                                     }
-                                                    pepFDRInfo.setCountsPrefilter(result.peptidePairFDR);
+                                                    pepFDRInfo.setCountsPrefilter(result.getPeptidePairFDR());
 
                                                     if (stopMaximizing) {
                                                         break pepMinScoreLoop;
@@ -5330,10 +5436,10 @@ public abstract class OfflineFDR {
                                                     settings.setProteinGroupFDR(protFDRInfo.getCurrentFDR());
                                                     this.calculateProteinGroupFDR(ignoreGroups, true, settings, result);
 
-                                                    if (result.proteinGroupFDR.getResultCount() == 0) {
+                                                    if (result.getProteinGroupFDR().getResultCount() == 0) {
                                                         break protloop;
                                                     }
-                                                    protFDRInfo.setCountsPrefilter(result.proteinGroupFDR);
+                                                    protFDRInfo.setCountsPrefilter(result.getProteinGroupFDR());
 
                                                     // cut down the peptides by proteins                           
                                                     this.filterFDRPeptidePairsByFDRProteinGroups(result);
@@ -5348,9 +5454,9 @@ public abstract class OfflineFDR {
                                                         // calculate links
                                                         settings.setProteinGroupLinkFDR(linkFDRInfo.getCurrentFDR());
                                                         this.calculateLinkFDR(ignoreGroups, true, settings, result);
-                                                        linkFDRInfo.setCountsPrefilter(result.proteinGroupLinkFDR);
+                                                        linkFDRInfo.setCountsPrefilter(result.getProteinGroupLinkFDR());
 
-                                                        if (result.proteinGroupLinkFDR.getResultCount() == 0) {
+                                                        if (result.getProteinGroupLinkFDR().getResultCount() == 0) {
                                                             break linkloop;
                                                         }
 
@@ -5361,7 +5467,7 @@ public abstract class OfflineFDR {
                                                         settings.setProteinGroupPairFDR(ppiFDRInfo.getCurrentFDR());
                                                         this.calculateProteinGroupPairFDR(ignoreGroups, true, settings, result);
 
-                                                        if (result.proteinGroupPairFDR.getResultCount() == 0) {
+                                                        if (result.getProteinGroupPairFDR().getResultCount() == 0) {
                                                             break linkloop;
                                                         }
                                                         // now we need to filter down to the required level
@@ -5370,15 +5476,15 @@ public abstract class OfflineFDR {
                                                         this.filterFDRProteinGroupsByFDRPeptidePairs(result);
 
                                                         // how many links do we now have?
-                                                        pepCoverage.setCounts(result.psmFDR);
-                                                        absPepCover.setCounts(result.psmFDR);
-                                                        deltaScore.setCounts(result.psmFDR);
-                                                        minScore.setCounts(result.psmFDR);
-                                                        psmFDRInfo.setCounts(result.psmFDR);
-                                                        pepFDRInfo.setCounts(result.peptidePairFDR);
-                                                        protFDRInfo.setCounts(result.proteinGroupFDR);
-                                                        linkFDRInfo.setCounts(result.proteinGroupLinkFDR);
-                                                        ppiFDRInfo.setCounts(result.proteinGroupPairFDR);
+                                                        pepCoverage.setCounts(result.getPsmFDR());
+                                                        absPepCover.setCounts(result.getPsmFDR());
+                                                        deltaScore.setCounts(result.getPsmFDR());
+                                                        minScore.setCounts(result.getPsmFDR());
+                                                        psmFDRInfo.setCounts(result.getPsmFDR());
+                                                        pepFDRInfo.setCounts(result.getPeptidePairFDR());
+                                                        protFDRInfo.setCounts(result.getProteinGroupFDR());
+                                                        linkFDRInfo.setCounts(result.getProteinGroupLinkFDR());
+                                                        ppiFDRInfo.setCounts(result.getProteinGroupPairFDR());
 
                                                         int count = targetInfo.count;
                                                         int countBetween = targetInfo.countBetween;
@@ -5406,6 +5512,8 @@ public abstract class OfflineFDR {
                                                             protFDRInfo.setNewMaxFDR();
                                                             linkFDRInfo.setNewMaxFDR();
                                                             protFDRInfo.setNewMaxFDR();
+                                                            pepStubs.setNewMaxFDR();
+                                                            pepDoublets.setNewMaxFDR();
 
                                                             // record that we found a new top
                                                             String message = "link count, " + linkFDRInfo.count + "(" + linkFDRInfo.countBetween + " between), Protein Pairs, " + ppiFDRInfo.count + "(" + ppiFDRInfo.countBetween + " between)";
@@ -5557,9 +5665,9 @@ public abstract class OfflineFDR {
                     if (pepCoverage.maximumFDR < 1) {
                         PSMFilter f = new SingleSubScoreFilter("minPepCoverage", 1 - pepCoverage.maximumFDR, true);
                         setPrefilteredPSMs(f.filter(getAllPSMs()));
-                        if (getPrefilteredPSMs().size() < 50) {
-                            break;
-                        }
+                        //if (getPrefilteredPSMs().size() < 50) {
+                        //    break;
+                        //}
                     } else {
                         setPrefilteredPSMs(null);
                     }
@@ -5610,6 +5718,183 @@ public abstract class OfflineFDR {
         }
         return null;
 
+    }
+
+    /**
+     * Runs two synchronised grid searches over the link- and PPI-FDR cutoffs:
+     * one that maximises the number of Self matches passing FDR at the given
+     * target {@code level}, and one that maximises the number of Between
+     * matches. All upstream settings (PSM FDR, peptide-pair FDR, protein-group
+     * FDR and the prefilters feeding {@link #calculateProteinGroupFDR}) are
+     * shared between both searches; only the link/PPI FDR cutoffs (and their
+     * downstream filtering) are allowed to diverge.
+     *
+     * The two resulting {@link FDRResult}s are merged via
+     * {@link #mergeSelfBetweenResults(FDRResult, FDRResult)}: Self/linear/
+     * LinearSelf groups come from the self-optimised run, Between(-only)
+     * groups come from the between-optimised run.
+     *
+     * Only {@link FDRLevel#PROTEINGROUPLINK} and {@link FDRLevel#PROTEINGROUPPAIR}
+     * are supported as target levels.
+     *
+     * <p><b>Note:</b> Linear (non-crosslinked) PSMs are excluded from both rounds because
+     * they satisfy neither {@code isInternal()} nor {@code isBetween()}. Protein-group support
+     * from linear peptides is therefore not carried into the dual-boost result. Use the standard
+     * {@link #maximise} path if linear-peptide evidence must be retained.
+     */
+    public DualMaximisingStatus maximiseDualSelfBetween(FDRSettings fdrSettings, OfflineFDR.FDRLevel level, final MaximizingUpdate stateUpdate) {
+
+        if (level != FDRLevel.PROTEINGROUPLINK && level != FDRLevel.PROTEINGROUPPAIR) {
+            throw new IllegalArgumentException("Dual self/between boosting is only supported for the Link and Protein-Pair levels");
+        }
+
+        // --- Round 1: self-only, maximise Self link/PPI count ---
+        FDRSettingsImpl selfSettings = new FDRSettingsImpl();
+        selfSettings.setAll(fdrSettings);
+        selfSettings.setCrosslinkTypeFilter(FDRSettings.CrosslinkType.SELF);
+
+        MaximisingStatus selfStatus = maximise(selfSettings, level, false, stateUpdate);
+
+        // Capture protein groups that survived round 1's protein-group FDR.
+        // These are the groups with validated self-link evidence; filteredResults()
+        // returns exactly this set from the MaximisingStatus result.
+        selfSupportedProteinGroups = new HashSet<>();
+        if (selfStatus != null && selfStatus.result != null
+                && selfStatus.result.getProteinGroupFDR() != null) {
+            for (ProteinGroup pg : selfStatus.result.getProteinGroupFDR().filteredResults()) {
+                selfSupportedProteinGroups.add(pg);
+            }
+        }
+
+        // --- Round 2: between-only, maximise Between link/PPI count ---
+        // calculateProteinGroupFDR will clear self-support flags for groups not in
+        // selfSupportedProteinGroups (see Change 3 above).
+        FDRSettingsImpl betweenSettings = new FDRSettingsImpl();
+        betweenSettings.setAll(fdrSettings);
+        betweenSettings.setCrosslinkTypeFilter(FDRSettings.CrosslinkType.BETWEEN);
+
+        MaximisingStatus betweenStatus;
+        try {
+            betweenStatus = maximise(betweenSettings, level, true, stateUpdate);
+        } finally {
+            // Clean up: restore shared state for subsequent normal calculateFDR calls
+            selfSupportedProteinGroups = null;
+        }
+
+        // --- Merge and return ---
+        if (selfStatus == null || betweenStatus == null) {
+            return null;
+        }
+        DualMaximisingStatus dual = new DualMaximisingStatus();
+        dual.self = selfStatus;
+        dual.between = betweenStatus;
+        dual.result = mergeSelfBetweenResults(selfStatus.result, betweenStatus.result);
+        dual.result.setSelfBoostStatus(selfStatus);
+        dual.result.setBetweenBoostStatus(betweenStatus);
+        return dual;
+    }
+
+    /**
+     * Merges a single result-level from two dual-boosting branches.
+     * Groups whose name does not contain "between" (case-insensitive) are
+     * taken from {@code selfLevel}; groups whose name contains "between" are
+     * taken from {@code betweenLevel}. Because those name-filters are mutually
+     * exclusive the merge path (when a group name appears in both filtered
+     * sets) is unreachable in practice, but is kept for correctness in case
+     * group naming ever changes: a new combined {@link SubGroupFdrInfo} is
+     * built without mutating either input.
+     */
+    private <T extends FDRSelfAdd> FDRResultLevel<T> mergeSelfBetween(FDRResultLevel<T> selfLevel, FDRResultLevel<T> betweenLevel) {
+        FDRResultLevel<T> merged = new FDRResultLevel<>();
+        int within = 0, between = 0, linear = 0;
+
+        // Non-"between" groups come from the self round
+        for (SubGroupFdrInfo<T> g : selfLevel.getGroups()) {
+            if (!g.fdrGroup.toLowerCase().contains("between")) {
+                merged.addGroup(g);
+                within += g.within;
+                between += g.between;
+                linear += g.linear;
+            }
+        }
+
+        // "Between"-named groups come from the between round;
+        // if a same-named group was already added from self, merge rather than overwrite
+        for (SubGroupFdrInfo<T> bg : betweenLevel.getGroups()) {
+            if (!bg.fdrGroup.toLowerCase().contains("between"))
+                continue;
+            SubGroupFdrInfo<T> sg = merged.getGroup(bg.fdrGroup);
+            if (sg == null) {
+                merged.addGroup(bg);
+            } else {
+                // Build a combined group without mutating either input
+                SubGroupFdrInfo<T> combined = new SubGroupFdrInfo<>();
+                combined.fdrGroup = sg.fdrGroup;
+                combined.targetFDR = sg.targetFDR;
+                combined.saftyfactor = sg.saftyfactor;
+                combined.TCount = sg.TCount;
+                combined.DCount = sg.DCount;
+                combined.lowerFDR = sg.lowerFDR;
+                combined.higherFDR = sg.higherFDR;
+                combined.firstPassingFDR = sg.firstPassingFDR;
+                combined.TT = sg.TT + bg.TT;
+                combined.TD = sg.TD + bg.TD;
+                combined.DD = sg.DD + bg.DD;
+                combined.resultTT = sg.resultTT + bg.resultTT;
+                combined.resultTD = sg.resultTD + bg.resultTD;
+                combined.resultDD = sg.resultDD + bg.resultDD;
+                combined.inputCount = sg.inputCount + bg.inputCount;
+                combined.resultCount = sg.resultCount + bg.resultCount;
+                combined.within = sg.within + bg.within;
+                combined.between = sg.between + bg.between;
+                combined.linear = sg.linear + bg.linear;
+                combined.results = new HashedArrayList<>(sg.results);
+                for (T e : bg.results) {
+                    if (!combined.results.contains(e))
+                        combined.results.add(e);
+                }
+                combined.filteredResult = new HashedArrayList<>(sg.filteredResult);
+                for (T e : bg.filteredResult) {
+                    if (!combined.filteredResult.contains(e))
+                        combined.filteredResult.add(e);
+                }
+                merged.addGroup(combined);
+            }
+            within += bg.within;
+            between += bg.between;
+            linear += bg.linear;
+        }
+
+        merged.setWithin(within);
+        merged.setBetween(between);
+        merged.setLinear(linear);
+        return merged;
+    }
+
+    /**
+     * Merges the result of a self-optimised and a between-optimised dual
+     * boosting run into a single {@link FDRResult}: Self/linear/LinearSelf
+     * groups come from {@code self}, Between(-only) groups come from
+     * {@code between}.
+     */
+    private FDRResult mergeSelfBetweenResults(FDRResult self, FDRResult between) {
+        FDRResult merged = new FDRResult();
+        ArrayList<PSM> mergedInput = new ArrayList<>(self.getInput());
+        mergedInput.addAll(between.getInput());
+        merged.setInput(mergedInput);
+        merged.setMinPeptideLength(self.getMinPeptideLength());
+        merged.setMaximumProteinAmbiguity(self.getMaximumProteinAmbiguity());
+        merged.setMaximumLinkAmbiguity(self.getMaximumLinkAmbiguity());
+        merged.setUniquePSMs(self.isUniquePSMs());
+        merged.setReportFactor(self.getReportFactor());
+        merged.setExcludedGroups(new ArrayList<>(self.getExcludedGroups()));
+        merged.getExcludedGroups().addAll(between.getExcludedGroups());
+        merged.setPsmFDR(mergeSelfBetween(self.getPsmFDR(), between.getPsmFDR()));
+        merged.setPeptidePairFDR(mergeSelfBetween(self.getPeptidePairFDR(), between.getPeptidePairFDR()));
+        merged.setProteinGroupFDR(mergeSelfBetween(self.getProteinGroupFDR(), between.getProteinGroupFDR()));
+        merged.setProteinGroupLinkFDR(mergeSelfBetween(self.getProteinGroupLinkFDR(), between.getProteinGroupLinkFDR()));
+        merged.setProteinGroupPairFDR(mergeSelfBetween(self.getProteinGroupPairFDR(), between.getProteinGroupPairFDR()));
+        return merged;
     }
 
     protected <T extends FDRSelfAdd> double getHighestSubGroupInputFDR(Collection<SubGroupFdrInfo<T>> c) {

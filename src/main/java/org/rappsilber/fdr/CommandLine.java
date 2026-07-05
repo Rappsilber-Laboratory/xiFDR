@@ -147,7 +147,7 @@ public class CommandLine {
         boolean csv = false;
         boolean gui = true;
         boolean db = false;
-        boolean dorestart=true;
+        boolean dorestart=false;
 
         for (String a : args) {
             if (a.startsWith("--xiconfig=") || a.contentEquals("--gui")) {

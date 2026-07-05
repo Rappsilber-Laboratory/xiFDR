@@ -23,6 +23,38 @@ import java.awt.event.ActionListener;
  */
 public interface FDRSettings {
     public static int DEFAULT_MIN_TD_COUNT=2;
+
+    public enum BoostMode {
+        NONE("No Boosting", "Don't try to boost"),
+        ALL("All", "Boost all crosslinked items as one list (typically favours self matches)"),
+        BETWEEN("Between", "Boost to increase protein heteromeric matches (typically heavily disfavours self matches)"),
+        SELFBETWEEN("Self+Between", "Boost first self matches and then protein heteromeric matches");
+
+        private final String name;
+        private final String description;
+
+        BoostMode(String name, String description) {
+            this.name = name;
+            this.description = description;
+        }
+
+
+        public String getName() {
+            return name;
+        }
+
+        public String getDescription() {
+            return description;
+        }
+
+        @Override
+        public String toString() {
+            return name;
+        }
+        
+        
+        
+    }
     
     /**
      * should the boosting be done in two steps (lower-FDR and non-FDR filters).
@@ -71,9 +103,33 @@ public interface FDRSettings {
     int getBoostingSteps();
     public void setBoostingSteps(int steps);
 
-    boolean getBoostBetween();
-    void setBoostBetween(boolean between);
-    
+    BoostMode getBoostMode();
+    void setBoostMode(BoostMode mode);
+
+    /** @deprecated Use {@link #getBoostMode()} instead. */
+    default boolean getBoostBetween() { return getBoostMode() == BoostMode.BETWEEN; }
+    /** @deprecated Use {@link #setBoostMode(BoostMode)} instead. */
+    default void setBoostBetween(boolean between) { 
+        if (between) 
+            setBoostMode(BoostMode.BETWEEN); 
+        else if (getBoostMode() == BoostMode.BETWEEN) 
+            setBoostMode(BoostMode.ALL);
+    }
+    /** @deprecated Use {@link #getBoostMode()} instead. */
+    default boolean getBoostSelfAndBetween() { return getBoostMode() == BoostMode.SELFBETWEEN; }
+    /** @deprecated Use {@link #setBoostMode(BoostMode)} instead. */
+    default void setBoostSelfAndBetween(boolean selfAndBetween) { 
+        if (selfAndBetween) 
+            setBoostMode(BoostMode.SELFBETWEEN); 
+        else if (getBoostMode() == BoostMode.SELFBETWEEN) 
+            setBoostMode(BoostMode.ALL);
+    }
+
+    enum CrosslinkType { ALL, SELF, BETWEEN }
+
+    default CrosslinkType getCrosslinkTypeFilter() { return CrosslinkType.ALL; }
+    default void setCrosslinkTypeFilter(CrosslinkType t) { }
+
     boolean isLinkDirectional();
 
     boolean isPPIDirectional();

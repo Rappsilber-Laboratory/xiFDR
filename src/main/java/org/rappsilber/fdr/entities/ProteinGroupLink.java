@@ -42,6 +42,7 @@ public class ProteinGroupLink extends AbstractFDRElement<ProteinGroupLink> { //i
     private int lastTopN = 0;
     
     public boolean isInternal = false;
+    private boolean isOverlapping = false;
     private ProteinGroup pg1;
     private HashMap<Protein, IntArrayList> position1 = new HashMap<Protein, IntArrayList>(1);
     private ProteinGroup pg2;
@@ -149,8 +150,9 @@ public class ProteinGroupLink extends AbstractFDRElement<ProteinGroupLink> { //i
                 hashcode += p;
         }
         this.m_negativeGroups = pp.getNegativeGrouping();
-        
+
         this.m_positiveGroups = pp.getPositiveGrouping();
+        this.isOverlapping = pp.isOverlapping();
     }
 
     @Override
@@ -166,7 +168,7 @@ public class ProteinGroupLink extends AbstractFDRElement<ProteinGroupLink> { //i
 
     @Override
     public int hashCode() {
-        return hashcode;
+        return isOverlapping ? hashcode ^ 0x8000 : hashcode;
     }
 
     /**
@@ -188,6 +190,9 @@ public class ProteinGroupLink extends AbstractFDRElement<ProteinGroupLink> { //i
                 return false;
 
             if (isNonCovalent != ((ProteinGroupLink) o).isNonCovalent)
+                return false;
+
+            if (isInternal && isOverlapping != pgl.isOverlapping)
                 return false;
 
             // is it a complete internal link? - meaning a link within the same protein-group (as opposed links between groups that contain a comon protein)
@@ -288,7 +293,7 @@ public class ProteinGroupLink extends AbstractFDRElement<ProteinGroupLink> { //i
     public String getFDRGroup() {
         if (fdrGroup == null) {
             if (isInternal) {
-                fdrGroup = "Self";
+                fdrGroup = isOverlapping ? "Self Overlapping" : "Self";
             } else {
                 fdrGroup = "Between";
             }
@@ -687,6 +692,15 @@ public class ProteinGroupLink extends AbstractFDRElement<ProteinGroupLink> { //i
 
     public boolean isBetween() {
         return !isInternal;
+    }
+
+    public boolean isOverlapping() {
+        return isOverlapping;
+    }
+
+    public void setOverlapping(boolean isOverlapping) {
+        this.isOverlapping = isOverlapping;
+        this.fdrGroup = null; // force recomputation of fdrGroup
     }
 
     /**

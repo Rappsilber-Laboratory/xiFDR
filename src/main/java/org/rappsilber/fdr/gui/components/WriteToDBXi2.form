@@ -28,7 +28,11 @@
           <Component id="jScrollPane1" alignment="0" max="32767" attributes="0"/>
           <Group type="102" attributes="0">
               <Component id="jLabel2" min="-2" max="-2" attributes="0"/>
-              <EmptySpace min="0" pref="0" max="32767" attributes="0"/>
+              <EmptySpace max="32767" attributes="0"/>
+              <Component id="jLabel4" min="-2" max="-2" attributes="0"/>
+              <EmptySpace max="-2" attributes="0"/>
+              <Component id="cmbMainScore" min="-2" max="-2" attributes="0"/>
+              <EmptySpace max="-2" attributes="0"/>
           </Group>
           <Group type="102" alignment="1" attributes="0">
               <EmptySpace min="0" pref="0" max="32767" attributes="0"/>
@@ -55,8 +59,14 @@
                   <Component id="jLabel1" alignment="3" min="-2" max="-2" attributes="0"/>
                   <Component id="txtName" alignment="3" min="-2" max="-2" attributes="0"/>
               </Group>
-              <EmptySpace type="unrelated" min="-2" max="-2" attributes="0"/>
-              <Component id="jLabel2" min="-2" max="-2" attributes="0"/>
+              <EmptySpace max="-2" attributes="0"/>
+              <Group type="103" groupAlignment="1" attributes="0">
+                  <Component id="jLabel2" min="-2" max="-2" attributes="0"/>
+                  <Group type="103" groupAlignment="3" attributes="0">
+                      <Component id="cmbMainScore" alignment="3" min="-2" max="-2" attributes="0"/>
+                      <Component id="jLabel4" alignment="3" min="-2" max="-2" attributes="0"/>
+                  </Group>
+              </Group>
               <EmptySpace max="-2" attributes="0"/>
               <Component id="jScrollPane1" pref="130" max="32767" attributes="0"/>
               <EmptySpace type="unrelated" max="-2" attributes="0"/>
@@ -147,6 +157,41 @@
     <Component class="javax.swing.JLabel" name="jLabel3">
       <Properties>
         <Property name="text" type="java.lang.String" value="As User"/>
+      </Properties>
+    </Component>
+    <Component class="javax.swing.JComboBox" name="cmbMainScore">
+      <Properties>
+        <Property name="model" type="javax.swing.ComboBoxModel" editor="org.netbeans.modules.form.editors2.ComboBoxModelEditor">
+          <StringArray count="18">
+            <StringItem index="0" value="CSM FDR"/>
+            <StringItem index="1" value="CSM PEP"/>
+            <StringItem index="2" value="CSM Score"/>
+            <StringItem index="3" value="PeptidePair FDR"/>
+            <StringItem index="4" value="PeptidePair PEP"/>
+            <StringItem index="5" value="PeptdePair Score"/>
+            <StringItem index="6" value="ResiduePair FDR"/>
+            <StringItem index="7" value="ResiduePair PEP"/>
+            <StringItem index="8" value="ResiduePair Score"/>
+            <StringItem index="9" value="ProteinPair FDR"/>
+            <StringItem index="10" value="ProteinPair PEP"/>
+            <StringItem index="11" value="ProteinPair Score"/>
+            <StringItem index="12" value="Protein1 FDR"/>
+            <StringItem index="13" value="Protein1 PEP"/>
+            <StringItem index="14" value="Protein1 Score"/>
+            <StringItem index="15" value="Protein2 FDR"/>
+            <StringItem index="16" value="Protein2 PEP"/>
+            <StringItem index="17" value="Protein2 Score"/>
+          </StringArray>
+        </Property>
+        <Property name="selectedIndex" type="int" value="2"/>
+      </Properties>
+      <AuxValues>
+        <AuxValue name="JavaCodeGenerator_TypeParameters" type="java.lang.String" value="&lt;String&gt;"/>
+      </AuxValues>
+    </Component>
+    <Component class="javax.swing.JLabel" name="jLabel4">
+      <Properties>
+        <Property name="text" type="java.lang.String" value="Main Score"/>
       </Properties>
     </Component>
   </SubComponents>

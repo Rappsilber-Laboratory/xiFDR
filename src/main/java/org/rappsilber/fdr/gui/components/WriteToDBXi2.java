@@ -50,6 +50,13 @@ public class WriteToDBXi2 extends javax.swing.JPanel {
         initComponents();
         
         this.txtNotes.setText("Add your notes here \n" + DB2inFDR.summary_marker_long);
+        ArrayList<String> scores = new ArrayList<>();
+        for (DB2inFDR.FDRScores s  : DB2inFDR.FDRScores.values()) {
+            scores.add(s.getName());
+        }
+        cmbMainScore.setModel(new javax.swing.DefaultComboBoxModel<>(scores.toArray(new String[scores.size()])));
+        cmbMainScore.setSelectedIndex(2);
+        
     }
 
     public void setDBProvider(DatabaseProvider provider) throws SQLException {
@@ -93,6 +100,7 @@ public class WriteToDBXi2 extends javax.swing.JPanel {
             public void run() {
                 try {
                     m_gui.setStatus("Writing to db: " + ofdr.summaryString(m_gui.getResult()));
+                    ofdr.setMainScore(cmbMainScore.getSelectedItem().toString());
                     ofdr.writeResult(txtName.getText(), txtNotes.getText(), (UUID)null, m_gui.getResult(),within, between, userid);
                     m_gui.setStatus("finished writing: " + ofdr.summaryString(m_gui.getResult()));
 
@@ -151,6 +159,8 @@ public class WriteToDBXi2 extends javax.swing.JPanel {
         txtNotes = new javax.swing.JTextArea();
         cbUser = new javax.swing.JComboBox<>();
         jLabel3 = new javax.swing.JLabel();
+        cmbMainScore = new javax.swing.JComboBox<>();
+        jLabel4 = new javax.swing.JLabel();
 
         btnWriteDB.setText("Write");
         btnWriteDB.setEnabled(false);
@@ -191,6 +201,11 @@ public class WriteToDBXi2 extends javax.swing.JPanel {
 
         jLabel3.setText("As User");
 
+        cmbMainScore.setModel(new javax.swing.DefaultComboBoxModel<>(new String[] { "CSM FDR", "CSM PEP", "CSM Score", "PeptidePair FDR", "PeptidePair PEP", "PeptdePair Score", "ResiduePair FDR", "ResiduePair PEP", "ResiduePair Score", "ProteinPair FDR", "ProteinPair PEP", "ProteinPair Score", "Protein1 FDR", "Protein1 PEP", "Protein1 Score", "Protein2 FDR", "Protein2 PEP", "Protein2 Score" }));
+        cmbMainScore.setSelectedIndex(2);
+
+        jLabel4.setText("Main Score");
+
         javax.swing.GroupLayout layout = new javax.swing.GroupLayout(this);
         this.setLayout(layout);
         layout.setHorizontalGroup(
@@ -202,7 +217,11 @@ public class WriteToDBXi2 extends javax.swing.JPanel {
             .addComponent(jScrollPane1)
             .addGroup(layout.createSequentialGroup()
                 .addComponent(jLabel2)
-                .addGap(0, 0, Short.MAX_VALUE))
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                .addComponent(jLabel4)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addComponent(cmbMainScore, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addContainerGap())
             .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, layout.createSequentialGroup()
                 .addGap(0, 0, Short.MAX_VALUE)
                 .addComponent(btnWriteDB))
@@ -224,8 +243,12 @@ public class WriteToDBXi2 extends javax.swing.JPanel {
                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
                     .addComponent(jLabel1)
                     .addComponent(txtName, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
-                .addComponent(jLabel2)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
+                    .addComponent(jLabel2)
+                    .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                        .addComponent(cmbMainScore, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addComponent(jLabel4)))
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                 .addComponent(jScrollPane1, javax.swing.GroupLayout.DEFAULT_SIZE, 130, Short.MAX_VALUE)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
@@ -259,9 +282,11 @@ public class WriteToDBXi2 extends javax.swing.JPanel {
     private javax.swing.JButton btnWriteDB;
     private javax.swing.ButtonGroup buttonGroup1;
     private javax.swing.JComboBox<String> cbUser;
+    private javax.swing.JComboBox<String> cmbMainScore;
     private javax.swing.JLabel jLabel1;
     private javax.swing.JLabel jLabel2;
     private javax.swing.JLabel jLabel3;
+    private javax.swing.JLabel jLabel4;
     private javax.swing.JScrollPane jScrollPane1;
     private javax.swing.JRadioButton rbAll;
     private javax.swing.JRadioButton rbBetween;

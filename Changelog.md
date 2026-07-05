@@ -1,4 +1,22 @@
 
+2.4
+
+* Self and heteromeric matches can now boosted sequentially and (mostly) independently
+* Protein homomultimeric self links are now treated separately
+* BUGFIX config modifications missing leading to unknoqwn modification warning during mzIdentML export
+
+2.3.10
+
+* new csv argument --filter
+* GUI filter can be switched between simple  text field and GUI input
+* mzIdentML protein name will be set to accession if no name is given
+
+2.3.9
+
+* Write out mzIdentML crosslinker stub information to donor and acceptor
+* no need to restart anymore - should produce valid UTF-8 mzIdentML without it
+* db reading fix for large scan_ids
+
 2.3.8
 
 * Write out crosslinker stub information to mzIdentML

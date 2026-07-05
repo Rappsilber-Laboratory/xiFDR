@@ -47,7 +47,7 @@ public class FDRLevelInformations extends javax.swing.JFrame {
                     new double[] {
                         sg.higherFDR*100, 
                         sg.lowerFDR*100, 
-                        sg.targteFDR*100, 
+                        sg.targetFDR*100, 
                         sg.firstPassingFDR*100
                     },1);
             
@@ -55,7 +55,7 @@ public class FDRLevelInformations extends javax.swing.JFrame {
             rowString[0] = sg.fdrGroup;
             rowString[1] = ""+sg.inputCount;
             
-            rowString[2] = sg.targteFDR >=+ 1 ? "unrestricted" : ""+(sg.targteFDR * 100);
+            rowString[2] = sg.targetFDR >=+ 1 ? "unrestricted" : ""+(sg.targetFDR * 100);
             rowString[3] = String.format(formatString + "%% FP",sg.firstPassingFDR*100);
             rowString[4] = String.format("<"+ formatString + "%% H", sg.higherFDR*100);
             rowString[5] = String.format(">"+ formatString + "%% L", sg.lowerFDR*100);
@@ -70,6 +70,54 @@ public class FDRLevelInformations extends javax.swing.JFrame {
         }
     }
 
+    /**
+     * Creates new form FDRLevelInformations
+     */
+    public FDRLevelInformations(FDRResultLevel[] levels, String[] levelNames, String title) {
+        initComponents();
+        this.setTitle(title);
+
+        CSVRandomAccess csv = new CSVRandomAccess(',', '\"');
+        csv.setHeader(new String[]{"","Group","Input","TargetFDR","Next FDR","Accepted FDR", "Lower FDR","Passed","Filtered Result","Worst Score", "passed check"});
+        csvLevelInfo.setCSV(csv);
+        for (int l =0; l<levels.length; l++) {
+            FDRResultLevel level = levels[l];
+            String ln = levelNames[l];
+            Set<String> ids = level.getGroupIDs();
+            for (String fg: ids) {
+                String[] rowString = new String[11];
+                SubGroupFdrInfo sg = level.getGroup(fg);
+
+
+                String formatString = MiscUtils.formatStringForPrettyPrintingRelatedValues(
+                        new double[] {
+                            sg.higherFDR*100, 
+                            sg.lowerFDR*100, 
+                            sg.targetFDR*100, 
+                            sg.firstPassingFDR*100
+                        },1);
+
+
+                rowString[0] = ln;
+                rowString[1] = sg.fdrGroup;
+                rowString[2] = ""+sg.inputCount;
+
+                rowString[3] = sg.targetFDR >= 1 ? "unrestricted" : ""+(sg.targetFDR * 100);
+                rowString[4] = String.format(formatString + "%% FP",sg.firstPassingFDR*100);
+                rowString[5] = String.format("<"+ formatString + "%% H", sg.higherFDR*100);
+                rowString[6] = String.format(">"+ formatString + "%% L", sg.lowerFDR*100);
+
+                rowString[7] = "" + sg.results.size()  + "(" + sg.resultTT + " TT)";
+                rowString[8] = "" + sg.filteredResult.size() ;
+                rowString[9] = "" + sg.worstAcceptedScore;
+
+                rowString[10] = (sg.didntPassCheck == null ? "true" :  sg.didntPassCheck);
+
+                csv.insertLine(csv.getRowCount(), rowString);
+            }
+        }
+    }
+    
     /**
      * This method is called from within the constructor to initialize the form.
      * WARNING: Do NOT modify this code. The content of this method is always

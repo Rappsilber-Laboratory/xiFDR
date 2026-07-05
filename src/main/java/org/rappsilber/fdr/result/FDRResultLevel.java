@@ -141,7 +141,7 @@ public class FDRResultLevel<T extends FDRSelfAdd>  implements Iterable<T> {
         int c=0;
         double fdr = 0d;
         for (SubGroupFdrInfo<T> g: groups.values()) {
-            fdr+=g.results.size()*g.targteFDR;
+            fdr+=g.results.size()*g.targetFDR;
             c+=g.results.size();
         }
         return fdr/c;

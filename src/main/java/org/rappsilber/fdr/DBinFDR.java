@@ -1052,7 +1052,7 @@ public class DBinFDR extends org.rappsilber.fdr.OfflineFDR implements XiInFDR {
                     double pep1mass = rs.getDouble(pep1massColumn);
                     double pep2mass = rs.getDouble(pep2massColumn);
                     int search_id = rs.getInt(search_idColumn);
-                    int scan_id = rs.getInt(spectrum_idColumn);
+                    long scan_id = rs.getLong(spectrum_idColumn);
                     if (pepSeq2 != null && pepSeq2.matches("^X-?[0-9\\.]*$")) {
                         double mass = Double.parseDouble(pepSeq2.substring(1));
                         AminoModification am = new AminoModification(pepSeq2, AminoAcid.A, mass-18.0105647);
@@ -1954,7 +1954,7 @@ public class DBinFDR extends org.rappsilber.fdr.OfflineFDR implements XiInFDR {
 
     }
 
-    protected PSM setUpDBPSM(String psmID, String run, String scan, long pep1ID, long pep2ID, String pepSeq1, String pepSeq2, int peplen1, int peplen2, int site1, int site2, boolean isDecoy1, boolean isDecoy2, int charge, double score, long protein1ID, String accession1, String description1, long protein2ID, String accession2, String description2, int pepPosition1, int pepPosition2, String sequence1, String sequence2, double peptide1score, double peptide2score, int spectrum_charge, String xl, double pmz, double calc_mass, double pep1mass, double pep2mass, int search_id, int scan_id) {
+    protected PSM setUpDBPSM(String psmID, String run, String scan, long pep1ID, long pep2ID, String pepSeq1, String pepSeq2, int peplen1, int peplen2, int site1, int site2, boolean isDecoy1, boolean isDecoy2, int charge, double score, long protein1ID, String accession1, String description1, long protein2ID, String accession2, String description2, int pepPosition1, int pepPosition2, String sequence1, String sequence2, double peptide1score, double peptide2score, int spectrum_charge, String xl, double pmz, double calc_mass, double pep1mass, double pep2mass, int search_id, long scan_id) {
         PSM psm = addMatch(psmID, run, scan, pep1ID, pep2ID, pepSeq1, pepSeq2, peplen1, peplen2, site1, site2, isDecoy1, isDecoy2, charge, score, protein1ID, accession1, description1, protein2ID, accession2, description2, pepPosition1, pepPosition2, sequence1, sequence2, peptide1score, peptide2score, spectrum_charge == -1?"Unknow Charge" : null, xl);
         if (spectrum_charge == -1) {
             psm.setNegativeGrouping(" UnknownCharge");
@@ -1998,7 +1998,7 @@ public class DBinFDR extends org.rappsilber.fdr.OfflineFDR implements XiInFDR {
 //            Logger.getLogger(this.getClass().getName()).log(Level.WARNING, "wrong mass");
 //        }
         psm.setSearchID(Integer.toString(search_id));
-        psm.setScanID(Integer.toString(scan_id));
+        psm.setScanID(Long.toString(scan_id));
         return psm;
 //                    if (!psm.isLinear()) {
 //                        psm.setCrosslinker(rs.getString(xlColumn));
@@ -2144,7 +2144,7 @@ public class DBinFDR extends org.rappsilber.fdr.OfflineFDR implements XiInFDR {
         boolean autocomit = getDBConnection().getAutoCommit();
         getDBConnection().setAutoCommit(false);
         // also write the fdr-values
-        for (PeptidePair pp : result.peptidePairFDR.filteredResults()) {
+        for (PeptidePair pp : result.getPeptidePairFDR().filteredResults()) {
             ProteinGroupPair pgp = pp.getFdrLink().getFdrPPI();
             double confidence = 100 * (1 - pgp.getFDR());
             for (String psmid : pp.getPSMids()) {
@@ -2175,7 +2175,7 @@ public class DBinFDR extends org.rappsilber.fdr.OfflineFDR implements XiInFDR {
         boolean autocomit = getDBConnection().getAutoCommit();
         getDBConnection().setAutoCommit(false);
         // also write the fdr-values
-        for (PeptidePair pp : result.peptidePairFDR.filteredResults()) {
+        for (PeptidePair pp : result.getPeptidePairFDR().filteredResults()) {
 
             double confidence = 100 * (1 - pp.getFDR());
             for (String psmid : pp.getPSMids()) {
@@ -2206,7 +2206,7 @@ public class DBinFDR extends org.rappsilber.fdr.OfflineFDR implements XiInFDR {
         boolean autocomit = getDBConnection().getAutoCommit();
         getDBConnection().setAutoCommit(false);
         // also write the fdr-values
-        for (PeptidePair pp : result.peptidePairFDR.filteredResults()) {
+        for (PeptidePair pp : result.getPeptidePairFDR().filteredResults()) {
             if (!pp.isLinear()) {
                 ProteinGroupLink l = pp.getFdrLink();
                 double confidence = 100 * (1 - l.getFDR());
@@ -2249,7 +2249,7 @@ public class DBinFDR extends org.rappsilber.fdr.OfflineFDR implements XiInFDR {
                 stVal = updateValidateNonOverWrite;
             }
             // write out validations - but only if the match was not already validated
-            for (PSM psm : result.psmFDR.filteredResults()) {
+            for (PSM psm : result.getPsmFDR().filteredResults()) {
                 Long psmid = Long.parseLong(psm.getPsmID());
 //                    for (PeptidePair pp : result.peptidePairFDR) {
 //                        for (String psmid : pp.getPSMids()) {

@@ -4,11 +4,6 @@
   <NonVisualComponents>
     <Component class="javax.swing.ButtonGroup" name="bgBoost">
     </Component>
-    <Component class="javax.swing.JCheckBox" name="ckBoostBetween">
-      <Properties>
-        <Property name="text" type="java.lang.String" value="Between"/>
-      </Properties>
-    </Component>
   </NonVisualComponents>
   <AuxValues>
     <AuxValue name="FormSettings_autoResourcing" type="java.lang.Integer" value="0"/>
@@ -52,14 +47,20 @@
               </Group>
               <EmptySpace type="unrelated" max="-2" attributes="0"/>
               <Group type="103" groupAlignment="2" attributes="0">
-                  <Component id="ckMaximize" alignment="2" min="-2" max="-2" attributes="0"/>
                   <Component id="rbBoostPeptidePairs" alignment="2" min="-2" max="-2" attributes="0"/>
                   <Component id="rbBoostLinks" alignment="2" min="-2" max="-2" attributes="0"/>
                   <Component id="rbBoostPPI" alignment="2" min="-2" max="-2" attributes="0"/>
                   <Component id="rbBoostOther" alignment="2" min="-2" max="-2" attributes="0"/>
               </Group>
               <EmptySpace max="-2" attributes="0"/>
-              <Component id="cbBoostOther" min="-2" pref="95" max="-2" attributes="0"/>
+              <Group type="103" groupAlignment="2" attributes="0">
+                  <Group type="102" attributes="0">
+                      <Component id="cmbBoostMode" min="-2" max="-2" attributes="0"/>
+                      <EmptySpace max="-2" attributes="0"/>
+                      <Component id="btnBoostHelp" min="-2" max="-2" attributes="0"/>
+                  </Group>
+                  <Component id="cbBoostOther" min="-2" pref="95" max="-2" attributes="0"/>
+              </Group>
               <EmptySpace pref="86" max="32767" attributes="0"/>
               <Group type="103" groupAlignment="0" attributes="0">
                   <Component id="btnCalc" linkSize="1" min="-2" max="-2" attributes="0"/>
@@ -75,7 +76,8 @@
               <EmptySpace max="-2" attributes="0"/>
               <Group type="103" groupAlignment="3" attributes="0">
                   <Component id="jLabel9" alignment="3" min="-2" max="-2" attributes="0"/>
-                  <Component id="ckMaximize" alignment="3" min="-2" max="-2" attributes="0"/>
+                  <Component id="cmbBoostMode" alignment="3" min="-2" max="-2" attributes="0"/>
+                  <Component id="btnBoostHelp" alignment="3" min="-2" max="-2" attributes="0"/>
               </Group>
               <EmptySpace type="unrelated" max="-2" attributes="0"/>
               <Group type="103" groupAlignment="1" attributes="0">
@@ -234,13 +236,21 @@
         <EventHandler event="actionPerformed" listener="java.awt.event.ActionListener" parameters="java.awt.event.ActionEvent" handler="setBoostingLevel"/>
       </Events>
     </Component>
-    <Component class="javax.swing.JCheckBox" name="ckMaximize">
+    <Component class="javax.swing.JComboBox" name="cmbBoostMode">
       <Properties>
-        <Property name="text" type="java.lang.String" value="Boost"/>
-        <Property name="toolTipText" type="java.lang.String" value="should we try to boost the results reported for a specified maximum FDR"/>
+        <Property name="toolTipText" type="java.lang.String" value="Select what the boost should optimise"/>
+      </Properties>
+    </Component>
+    <Component class="javax.swing.JButton" name="btnBoostHelp">
+      <Properties>
+        <Property name="text" type="java.lang.String" value="?"/>
+        <Property name="margin" type="java.awt.Insets" editor="org.netbeans.beaninfo.editors.InsetsEditor">
+          <Insets value="[0, 4, 0, 4]"/>
+        </Property>
+        <Property name="toolTipText" type="java.lang.String" value="Show boost mode descriptions"/>
       </Properties>
       <Events>
-        <EventHandler event="actionPerformed" listener="java.awt.event.ActionListener" parameters="java.awt.event.ActionEvent" handler="ckMaximizeActionPerformed"/>
+        <EventHandler event="actionPerformed" listener="java.awt.event.ActionListener" parameters="java.awt.event.ActionEvent" handler="btnBoostHelpActionPerformed"/>
       </Events>
     </Component>
     <Component class="javax.swing.JComboBox" name="cbBoostOther">

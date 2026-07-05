@@ -72,6 +72,7 @@ import org.rappsilber.fdr.entities.Protein;
 import org.rappsilber.fdr.entities.ProteinGroupLink;
 import org.rappsilber.fdr.entities.ProteinGroupPair;
 import org.rappsilber.fdr.gui.components.settings.FDRSettingsPanel;
+import org.rappsilber.fdr.utils.DualMaximisingStatus;
 import org.rappsilber.fdr.utils.MZIdentMLExport;
 import org.rappsilber.fdr.utils.MaximisingStatus;
 import org.rappsilber.fdr.utils.MaximizingUpdate;
@@ -86,6 +87,7 @@ import org.rappsilber.peaklist.MgfStyleTitleParser;
 import org.rappsilber.utils.UpdateableInteger;
 import org.rappsilber.utils.XiFDRUtils;
 import org.rappsilber.fdr.dataimport.Xi2Xi1Config;
+import org.rappsilber.fdr.entities.ProteinGroup;
 import org.rappsilber.utils.Version;
 import rappsilber.config.RunConfigFile;
 import rappsilber.utils.XiVersion;
@@ -141,6 +143,11 @@ public class FDRGUI extends javax.swing.JFrame {
         
         // make sure we display one of the possible fdrsettings-panel
         changeFDRSettings(null);
+
+        // Persistent note shown above the settings scroll pane after a sequential self+between boost
+        lblBoostRoundNote = new javax.swing.JLabel("");
+        lblBoostRoundNote.setForeground(new java.awt.Color(180, 90, 0));
+        spFDRSettingsWrapper.setColumnHeaderView(lblBoostRoundNote);
 
         //Logger.getLogger("rappsilber").addHandler(loggingOutput);
         Logger.getLogger("org.rappsilber").setLevel(Level.ALL);
@@ -950,7 +957,13 @@ public class FDRGUI extends javax.swing.JFrame {
         }
         
         Protein.DECOY_PREFIX = csvSelect.getDecoyPrefix();
-        final CsvCondition filter = csvSelect.getFilter();
+        CsvCondition pfilter = null;
+        try {
+                pfilter = csvSelect.getFilter();
+        } catch (ParseException pe) {
+            JOptionPane.showMessageDialog(rootPane, "Error parsing filter", "Filter error", JOptionPane.ERROR_MESSAGE);
+        }
+        final CsvCondition filter = pfilter;
         final File config=csvSelect.fbConfigIn.getFile();
         final File fasta=csvSelect.fbFastaIn.getFile();
         final OfflineFDR.Normalisation normalisation = csvSelect.doNormalize();
@@ -991,7 +1004,13 @@ public class FDRGUI extends javax.swing.JFrame {
         setEnableRead(false);
         setEnableCalc(false);
         setEnableWrite(false);
-        final CsvCondition filter = csvSelect.getFilter();
+        CsvCondition pfilter = null;
+        try {
+                pfilter = csvSelect.getFilter();
+        } catch (ParseException pe) {
+            JOptionPane.showMessageDialog(rootPane, "Error parsing filter", "Filter error", JOptionPane.ERROR_MESSAGE);
+        }
+        final CsvCondition filter = pfilter;
         final File config=csvSelect.fbConfigIn.getFile();
         final File fasta=csvSelect.fbFastaIn.getFile();
         final OfflineFDR.Normalisation normalisation = csvSelect.doNormalize();
@@ -1158,6 +1177,7 @@ public class FDRGUI extends javax.swing.JFrame {
         setResult(result);
         EventQueue.invokeLater(new Runnable() {
             public void run() {
+                lblBoostRoundNote.setText("");
                 reportResultToSumaryTab(ofdr, result);
             }
         });
@@ -1177,7 +1197,7 @@ public class FDRGUI extends javax.swing.JFrame {
         int targetLinearPSM = 0;
         int decoyXLPSM = 0;
         int decoyLinearPSM = 0;
-        for (PSM psm : getResult().psmFDR.filteredResults()) {
+        for (PSM psm : getResult().getPsmFDR().filteredResults()) {
             if (psm.isLinear()) {
                 sumLinearPSM++;
                 if (!psm.isDecoy()) {
@@ -1200,7 +1220,7 @@ public class FDRGUI extends javax.swing.JFrame {
         int targetLinearPepPairs = 0;
         int decoyXLPepPairs = 0;
         int decoyLinearPepPairs = 0;
-        for (PeptidePair pp : result.peptidePairFDR.filteredResults()) {
+        for (PeptidePair pp : result.getPeptidePairFDR().filteredResults()) {
             if (pp.isLinear()) {
                 sumLinearPepPairs++;
                 if (!pp.isDecoy()) {
@@ -1222,8 +1242,8 @@ public class FDRGUI extends javax.swing.JFrame {
         int sumLinksInternalDD = 0;
         int sumLinksInternalTarget = 0;
         int sumLinksBetweenTarget = 0;
-        int sumLinks = getResult().proteinGroupLinkFDR.getResultCount();
-        for (ProteinGroupLink l : getResult().proteinGroupLinkFDR.filteredResults()) {
+        int sumLinks = getResult().getProteinGroupLinkFDR().getResultCount();
+        for (ProteinGroupLink l : getResult().getProteinGroupLinkFDR().filteredResults()) {
             if (l.isDecoy()) {
                 if (l.isInternal) {
                     sumLinksInternalDecoy++;
@@ -1250,7 +1270,7 @@ public class FDRGUI extends javax.swing.JFrame {
         int sumLinksInternalDDUF = 0;
         int sumLinksInternalTargetUF = 0;
         int sumLinksBetweenTargetUF = 0;
-        for (ProteinGroupLink l : getResult().proteinGroupLinkFDR) {
+        for (ProteinGroupLink l : getResult().getProteinGroupLinkFDR()) {
             if (l.isDecoy()) {
                 if (l.isInternal) {
                     sumLinksInternalDecoyUF++;
@@ -1273,14 +1293,14 @@ public class FDRGUI extends javax.swing.JFrame {
 
         
         
-        int sumProteinGroupPairs = getResult().proteinGroupPairFDR.getResultCount();
+        int sumProteinGroupPairs = getResult().getProteinGroupPairFDR().getResultCount();
         int sumProteinGroupPairsBetweenDecoy = 0;
         int sumProteinGroupPairsInternalDecoy = 0;
         int sumProteinGroupPairsBetweenDD = 0;
         int sumProteinGroupPairsInternalDD = 0;
         int sumProteinGroupPairsInternalTarget = 0;
         int sumProteinGroupPairsBetweenTarget = 0;
-        for (ProteinGroupPair pgl : getResult().proteinGroupPairFDR.filteredResults()) {
+        for (ProteinGroupPair pgl : getResult().getProteinGroupPairFDR().filteredResults()) {
             if (pgl.isDecoy()) {
                 if (pgl.isInternal()) {
                     sumProteinGroupPairsInternalDecoy++;
@@ -1300,34 +1320,34 @@ public class FDRGUI extends javax.swing.JFrame {
         }
 //        Integer sumLinksProtGroups =  ofdr.getFDRProteinGroups().size();
 
-        String[] nice = MiscUtils.arrayToStringWithDifferenceOrientedFormat(new double[]{result.psmFDR.getHigherFDR() * 100, result.psmFDR.getLowerFDR() * 100}, 1);
+        String[] nice = MiscUtils.arrayToStringWithDifferenceOrientedFormat(new double[]{result.getPsmFDR().getHigherFDR() * 100, result.getPsmFDR().getLowerFDR() * 100}, 1);
         txtSumPSM.setText(sumPSM + " [" + nice[0] + "%," + nice[1] + "%]");
-        txtSumPSM.setToolTipText(fdrLevelSummary(result.psmFDR));
+        txtSumPSM.setToolTipText(fdrLevelSummary(result.getPsmFDR()));
         txtSumPSMXL.setText(sumXLPSM + " (" + (targetXLPSM) + " Target)");
         txtSumPSMLinear.setText(sumLinearPSM + " (" + (targetLinearPSM) + " Target)");
 
-        nice = MiscUtils.arrayToStringWithDifferenceOrientedFormat(new double[]{result.peptidePairFDR.getHigherFDR() * 100, result.peptidePairFDR.getLowerFDR() * 100}, 1);
+        nice = MiscUtils.arrayToStringWithDifferenceOrientedFormat(new double[]{result.getPeptidePairFDR().getHigherFDR() * 100, result.getPeptidePairFDR().getLowerFDR() * 100}, 1);
         txtSumPepPairs.setText(sumPepPairs + " [" + nice[0] + "%," + nice[1] + "%]");
-        txtSumPepPairs.setToolTipText(fdrLevelSummary(result.peptidePairFDR));
+        txtSumPepPairs.setToolTipText(fdrLevelSummary(result.getPeptidePairFDR()));
         txtSumPepPairsXL.setText(sumXLPepPairs + " (" + targetXLPepPairs + " Target)");
         txtSumPepPairsLinear.setText(sumLinearPepPairs + " (" + targetLinearPepPairs + " Target)");
 
-        nice = MiscUtils.arrayToStringWithDifferenceOrientedFormat(new double[]{result.proteinGroupLinkFDR.getHigherFDR() * 100, result.proteinGroupLinkFDR.getLowerFDR() * 100}, 1);
+        nice = MiscUtils.arrayToStringWithDifferenceOrientedFormat(new double[]{result.getProteinGroupLinkFDR().getHigherFDR() * 100, result.getProteinGroupLinkFDR().getLowerFDR() * 100}, 1);
         txtSumLinks.setText(sumLinks + " [" + nice[0] + "%," + nice[1] + "%]");
-        txtSumLinks.setToolTipText(fdrLevelSummary(result.proteinGroupLinkFDR));
+        txtSumLinks.setToolTipText(fdrLevelSummary(result.getProteinGroupLinkFDR()));
         nice = MiscUtils.arrayToStringWithDifferenceOrientedFormat(new double[]{(sumLinksBetweenDecoyUF-2*sumLinksBetweenDDUF)/(double)sumLinksBetweenTargetUF * 100, (sumLinksBetweenDecoyUF-2*sumLinksBetweenDDUF+1)/(double)sumLinksBetweenTargetUF * 100}, 1);
         
         txtSumLinksBetween.setText((sumLinksBetweenTarget + sumLinksBetweenDecoy) + " (" + sumLinksBetweenTarget + " TT) [" + nice[0] + "%," + nice[1] + "%]");
         nice = MiscUtils.arrayToStringWithDifferenceOrientedFormat(new double[]{(sumLinksInternalDecoyUF-2*sumLinksInternalDDUF)/(double)sumLinksInternalTargetUF * 100, (sumLinksInternalDecoyUF-2*sumLinksInternalDDUF+1)/(double)sumLinksInternalTargetUF * 100}, 1);
         txtSumLinksInternal.setText((sumLinksInternalDecoy + sumLinksInternalTarget) + " (" + sumLinksInternalTarget + " TT)  [" + nice[0] + "%," + nice[1] + "%]");
 
-        nice = MiscUtils.arrayToStringWithDifferenceOrientedFormat(new double[]{result.proteinGroupFDR.getHigherFDR() * 100, result.proteinGroupFDR.getLowerFDR() * 100}, 1);
-        txtSumProtGroups.setText(Integer.toString(getResult().proteinGroupFDR.getResultCount()) + " [" + nice[0] + "%," + nice[1] + "%]");
-        txtSumProtGroups.setToolTipText(fdrLevelSummary(result.proteinGroupFDR));
+        nice = MiscUtils.arrayToStringWithDifferenceOrientedFormat(new double[]{result.getProteinGroupFDR().getHigherFDR() * 100, result.getProteinGroupFDR().getLowerFDR() * 100}, 1);
+        txtSumProtGroups.setText(Integer.toString(getResult().getProteinGroupFDR().getResultCount()) + " [" + nice[0] + "%," + nice[1] + "%]");
+        txtSumProtGroups.setToolTipText(fdrLevelSummary(result.getProteinGroupFDR()));
 
-        nice = MiscUtils.arrayToStringWithDifferenceOrientedFormat(new double[]{result.proteinGroupPairFDR.getHigherFDR() * 100, result.proteinGroupPairFDR.getLowerFDR() * 100}, 1);
+        nice = MiscUtils.arrayToStringWithDifferenceOrientedFormat(new double[]{result.getProteinGroupPairFDR().getHigherFDR() * 100, result.getProteinGroupPairFDR().getLowerFDR() * 100}, 1);
         txtSumProtGroupPairs.setText(sumProteinGroupPairs + " [" + nice[0] + "%," + nice[1] + "%]");
-        txtSumProtGroupPairs.setToolTipText(fdrLevelSummary(result.proteinGroupPairFDR));
+        txtSumProtGroupPairs.setToolTipText(fdrLevelSummary(result.getProteinGroupPairFDR()));
         nice = MiscUtils.arrayToStringWithDifferenceOrientedFormat(new double[]{(sumProteinGroupPairsBetweenDecoy-2*sumProteinGroupPairsBetweenDD)/(double)sumProteinGroupPairsBetweenTarget * 100, (sumProteinGroupPairsBetweenDecoy-2*sumProteinGroupPairsBetweenDD+1)/(double)sumProteinGroupPairsBetweenTarget * 100}, 1);
         txtSumProtGroupPairsBetween.setText((sumProteinGroupPairsBetweenTarget + sumProteinGroupPairsBetweenDecoy) + " (" + sumProteinGroupPairsBetweenTarget + " TT) [" + nice[0] + "%," + nice[1] + "%]");
         nice = MiscUtils.arrayToStringWithDifferenceOrientedFormat(new double[]{(sumProteinGroupPairsInternalDecoy-2*sumProteinGroupPairsInternalDD)/(double)sumProteinGroupPairsInternalTarget * 100, (sumProteinGroupPairsInternalDecoy-2*sumProteinGroupPairsInternalDD+1)/(double)sumProteinGroupPairsInternalTarget * 100}, 1);
@@ -1461,7 +1481,7 @@ public class FDRGUI extends javax.swing.JFrame {
         setEnableWrite(false);
         m_fdr.setIgnoreGroupsSetting(ckIgnoreGroups1.isSelected());
         
-        final MaximisingStatus result = m_fdr.maximise(settings, level, settings.getBoostBetween(), new MaximizingUpdate() {
+        final MaximizingUpdate maxUpdate = new MaximizingUpdate() {
             @Override
             public void setStatus(final MaximisingStatus state) {
                 javax.swing.SwingUtilities.invokeLater(new Runnable() {
@@ -1483,7 +1503,7 @@ public class FDRGUI extends javax.swing.JFrame {
                         fdrSettingsMedium.setPeptidePairFDR(state.showPepFDR);
                         fdrSettingsMedium.setProteinGroupFDR(state.showProtFDR);
                         fdrSettingsMedium.setProteinGroupLinkFDR(state.showLinkFDR);
-                        
+
 
                         txtSumPSM.setText(state.showPSMCount);
                         txtSumPepPairs.setText(state.showPepCount);
@@ -1511,23 +1531,101 @@ public class FDRGUI extends javax.swing.JFrame {
                     }
                 });
             }
-        });
-        setEnableRead(true);
-        setEnableCalc(true);
-        if (result != null) {
-            setEnableWrite(true);
-        
-            setResult(result.result);
-            javax.swing.SwingUtilities.invokeLater(new Runnable() {
-                public void run() {
-                    reportResultToSumaryTab(m_fdr, result.result);
-                    JOptionPane.showMessageDialog(rootPane, "found " + result.resultCount + "("+ result.resultCountBetween +" between) matches for following settings \n"
-                            + "\nPSM fdr:    " + result.showPSMFDR
-                            + "\nPeptide fdr:" + result.showPepFDR
-                            + "\nProtein FDR:" + result.showProtFDR
-                            + "\nLink FDR:" + result.showLinkFDR, "best parameters found for max protein group pairs", JOptionPane.INFORMATION_MESSAGE);
-                }
-            });        
+        };
+
+        if (settings.getBoostMode() == FDRSettings.BoostMode.SELFBETWEEN
+                && (level == OfflineFDR.FDRLevel.PROTEINGROUPLINK || level == OfflineFDR.FDRLevel.PROTEINGROUPPAIR)) {
+            final DualMaximisingStatus result = m_fdr.maximiseDualSelfBetween(settings, level, maxUpdate);
+            setEnableRead(true);
+            setEnableCalc(true);
+            if (result != null) {
+                setEnableWrite(true);
+
+                setResult(result.result);
+                javax.swing.SwingUtilities.invokeLater(new Runnable() {
+                    public void run() {
+                        // All spinners: round 2 (Between) converged values — the final,
+                        // primary-objective round. Round 1 (Self) values appear in the dialog/log.
+                        getFdrSettingsComplete().setPSMFDR(result.between.showPSMFDR);
+                        getFdrSettingsComplete().setPeptidePairFDR(result.between.showPepFDR);
+                        getFdrSettingsComplete().setProteinGroupFDR(result.between.showProtFDR);
+                        getFdrSettingsComplete().setProteinGroupLinkFDR(result.between.showLinkFDR);
+                        getFdrSettingsComplete().setProteinGroupPairFDR(result.between.showProtPairFDR);
+                        getFdrSettingsComplete().setMinPeptideStubFilter(result.between.showMinStubs);
+                        getFdrSettingsComplete().setMinPeptideDoubletFilter(result.between.showMinDoublets);
+                        getFdrSettingsComplete().setMinPeptideFragmentsFilter(result.between.showMinFrags);
+                        getFdrSettingsComplete().minScore(result.between.showMinScore);
+                        getFdrSettingsComplete().setMinDeltaScoreFilter(result.between.showDelta);
+                        getFdrSettingsComplete().setMinPeptideCoverageFilter(result.between.showPepCoverage);
+
+                        fdrSettingsMedium.setPSMFDR(result.between.showPSMFDR);
+                        fdrSettingsMedium.setPeptidePairFDR(result.between.showPepFDR);
+                        fdrSettingsMedium.setProteinGroupFDR(result.between.showProtFDR);
+                        fdrSettingsMedium.setProteinGroupLinkFDR(result.between.showLinkFDR);
+
+                        lblBoostRoundNote.setText(
+                            "  Note: Settings reflect the Between round of the sequential boost only. "
+                            + "Self round values are in the Log tab.");
+
+                        reportResultToSumaryTab(m_fdr, result.result);
+
+                        String levelFDRLabel = level == OfflineFDR.FDRLevel.PROTEINGROUPPAIR ? "Protein-Pair" : "Link";
+                        double selfLevelFDR = level == OfflineFDR.FDRLevel.PROTEINGROUPPAIR ? result.self.showProtPairFDR : result.self.showLinkFDR;
+                        double betweenLevelFDR = level == OfflineFDR.FDRLevel.PROTEINGROUPPAIR ? result.between.showProtPairFDR : result.between.showLinkFDR;
+
+                        String msg = "Sequential Self+Between optimisation results:"
+                                + "\n"
+                                + "\nRound 1 (Self):"
+                                + "\n  Results: " + result.self.resultCount + " (" + result.self.resultCountBetween + " between) matches"
+                                + "\n  PSM FDR: " + result.self.showPSMFDR
+                                + "  Peptide FDR: " + result.self.showPepFDR
+                                + "  Protein FDR: " + result.self.showProtFDR
+                                + "\n  Self " + levelFDRLabel + " FDR: " + selfLevelFDR
+                                + "\n  min score: " + result.self.showMinScore
+                                + "  delta: " + result.self.showDelta
+                                + "  coverage: " + result.self.showPepCoverage
+                                + "\n  min frags: " + result.self.showMinFrags
+                                + "  stubs: " + result.self.showMinStubs
+                                + "  doublets: " + result.self.showMinDoublets
+                                + "\n"
+                                + "\nRound 2 (Between):"
+                                + "\n  Results: " + result.between.resultCount + " (" + result.between.resultCountBetween + " between) matches"
+                                + "\n  PSM FDR: " + result.between.showPSMFDR
+                                + "  Peptide FDR: " + result.between.showPepFDR
+                                + "  Protein FDR: " + result.between.showProtFDR
+                                + "\n  Between " + levelFDRLabel + " FDR: " + betweenLevelFDR
+                                + "\n  min score: " + result.between.showMinScore
+                                + "  delta: " + result.between.showDelta
+                                + "  coverage: " + result.between.showPepCoverage
+                                + "\n  min frags: " + result.between.showMinFrags
+                                + "  stubs: " + result.between.showMinStubs
+                                + "  doublets: " + result.between.showMinDoublets;
+
+                        Logger.getLogger(FDRGUI.class.getName()).log(Level.INFO, msg);
+                        JOptionPane.showMessageDialog(rootPane, msg, "Sequential Self+Between optimisation", JOptionPane.INFORMATION_MESSAGE);
+                    }
+                });
+            }
+        } else {
+            final MaximisingStatus result = m_fdr.maximise(settings, level, settings.getBoostMode() == FDRSettings.BoostMode.BETWEEN, maxUpdate);
+            setEnableRead(true);
+            setEnableCalc(true);
+            if (result != null) {
+                setEnableWrite(true);
+
+                setResult(result.result);
+                javax.swing.SwingUtilities.invokeLater(new Runnable() {
+                    public void run() {
+                        lblBoostRoundNote.setText("");
+                        reportResultToSumaryTab(m_fdr, result.result);
+                        JOptionPane.showMessageDialog(rootPane, "found " + result.resultCount + "("+ result.resultCountBetween +" between) matches for following settings \n"
+                                + "\nPSM fdr:    " + result.showPSMFDR
+                                + "\nPeptide fdr:" + result.showPepFDR
+                                + "\nProtein FDR:" + result.showProtFDR
+                                + "\nLink FDR:" + result.showLinkFDR, "best parameters found for max protein group pairs", JOptionPane.INFORMATION_MESSAGE);
+                    }
+                });
+            }
         }
     }
     
@@ -1537,26 +1635,17 @@ public class FDRGUI extends javax.swing.JFrame {
             if (fdrSettings != null) {
                 fdrSettingsSimple.setAll(fdrSettings);
             }
-            if (spFDRSettingsWrapper.getComponentCount() > 3) {
-                spFDRSettingsWrapper.remove(spFDRSettingsWrapper.getComponent(3));
-            }
             spFDRSettingsWrapper.setViewportView(fdrSettingsSimple);
             fdrSettings = fdrSettingsSimple;
         } else if (rbFDRMedium.isSelected()) {
             if (fdrSettings != null) {
                 fdrSettingsMedium.setAll(fdrSettings);
             }
-            if (spFDRSettingsWrapper.getComponentCount() > 3) {
-                spFDRSettingsWrapper.remove(spFDRSettingsWrapper.getComponent(3));
-            }
             spFDRSettingsWrapper.setViewportView(fdrSettingsMedium);
             fdrSettings = fdrSettingsMedium;
         } else if (rbFDRComplete.isSelected()) {
             if (fdrSettings != null) {
                 fdrSettingsComplete.setAll(fdrSettings);
-            }
-            if (spFDRSettingsWrapper.getComponentCount() > 3) {
-                spFDRSettingsWrapper.remove(spFDRSettingsWrapper.getComponent(3));
             }
             spFDRSettingsWrapper.setViewportView(fdrSettingsComplete);
             fdrSettings = fdrSettingsComplete;
@@ -1699,7 +1788,7 @@ public class FDRGUI extends javax.swing.JFrame {
         jPanel8 = new javax.swing.JPanel();
         jLabel12 = new javax.swing.JLabel();
         txtSumInput = new javax.swing.JTextField();
-        jPanel9 = new javax.swing.JPanel();
+        jpSummaryCounts = new javax.swing.JPanel();
         btnPSMInfo = new javax.swing.JButton();
         jPanel18 = new javax.swing.JPanel();
         jLabel34 = new javax.swing.JLabel();
@@ -2231,7 +2320,7 @@ public class FDRGUI extends javax.swing.JFrame {
 
         jLabel12.setText("PSM input");
 
-        jPanel9.setBorder(javax.swing.BorderFactory.createTitledBorder("AfterFDR"));
+        jpSummaryCounts.setBorder(javax.swing.BorderFactory.createTitledBorder("AfterFDR"));
 
         btnPSMInfo.setText("+");
         btnPSMInfo.addActionListener(new java.awt.event.ActionListener() {
@@ -2397,49 +2486,49 @@ public class FDRGUI extends javax.swing.JFrame {
             }
         });
 
-        javax.swing.GroupLayout jPanel9Layout = new javax.swing.GroupLayout(jPanel9);
-        jPanel9.setLayout(jPanel9Layout);
-        jPanel9Layout.setHorizontalGroup(
-            jPanel9Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(jPanel9Layout.createSequentialGroup()
+        javax.swing.GroupLayout jpSummaryCountsLayout = new javax.swing.GroupLayout(jpSummaryCounts);
+        jpSummaryCounts.setLayout(jpSummaryCountsLayout);
+        jpSummaryCountsLayout.setHorizontalGroup(
+            jpSummaryCountsLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(jpSummaryCountsLayout.createSequentialGroup()
                 .addContainerGap()
-                .addGroup(jPanel9Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addGroup(jPanel9Layout.createSequentialGroup()
-                        .addGroup(jPanel9Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
+                .addGroup(jpSummaryCountsLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addGroup(jpSummaryCountsLayout.createSequentialGroup()
+                        .addGroup(jpSummaryCountsLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
                             .addComponent(jPanel22, javax.swing.GroupLayout.Alignment.LEADING, javax.swing.GroupLayout.PREFERRED_SIZE, 0, Short.MAX_VALUE)
                             .addComponent(jPanel21, javax.swing.GroupLayout.Alignment.LEADING, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                             .addComponent(jPanel12, javax.swing.GroupLayout.Alignment.LEADING, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
                         .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                        .addGroup(jPanel9Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                        .addGroup(jpSummaryCountsLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                             .addComponent(btnLinkInfo)
                             .addComponent(btnPPIInfo)))
-                    .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, jPanel9Layout.createSequentialGroup()
-                        .addGroup(jPanel9Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
+                    .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, jpSummaryCountsLayout.createSequentialGroup()
+                        .addGroup(jpSummaryCountsLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
                             .addComponent(jPanel18, javax.swing.GroupLayout.Alignment.LEADING, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                             .addComponent(jPanel20, javax.swing.GroupLayout.Alignment.LEADING, javax.swing.GroupLayout.DEFAULT_SIZE, 698, Short.MAX_VALUE)
                             .addComponent(jPanel16, javax.swing.GroupLayout.Alignment.LEADING, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                             .addComponent(jPanel15, javax.swing.GroupLayout.Alignment.LEADING, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
                         .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                        .addGroup(jPanel9Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                        .addGroup(jpSummaryCountsLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                             .addComponent(btnPSMInfo)
                             .addComponent(btnPepInfo)
                             .addComponent(btnProtInfo))))
                 .addContainerGap())
         );
-        jPanel9Layout.setVerticalGroup(
-            jPanel9Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(jPanel9Layout.createSequentialGroup()
+        jpSummaryCountsLayout.setVerticalGroup(
+            jpSummaryCountsLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(jpSummaryCountsLayout.createSequentialGroup()
                 .addContainerGap()
                 .addComponent(jPanel18, javax.swing.GroupLayout.PREFERRED_SIZE, 20, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addGroup(jPanel9Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
+                .addGroup(jpSummaryCountsLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
                     .addComponent(btnProtInfo)
-                    .addGroup(jPanel9Layout.createSequentialGroup()
-                        .addGroup(jPanel9Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
+                    .addGroup(jpSummaryCountsLayout.createSequentialGroup()
+                        .addGroup(jpSummaryCountsLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
                             .addComponent(btnPSMInfo, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                             .addComponent(jPanel15, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
                         .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
-                        .addGroup(jPanel9Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
+                        .addGroup(jpSummaryCountsLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
                             .addComponent(jPanel16, javax.swing.GroupLayout.PREFERRED_SIZE, 25, javax.swing.GroupLayout.PREFERRED_SIZE)
                             .addComponent(btnPepInfo))
                         .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
@@ -2447,11 +2536,11 @@ public class FDRGUI extends javax.swing.JFrame {
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                 .addComponent(jPanel12, javax.swing.GroupLayout.PREFERRED_SIZE, 18, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addGroup(jPanel9Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING, false)
+                .addGroup(jpSummaryCountsLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING, false)
                     .addComponent(btnLinkInfo, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                     .addComponent(jPanel21, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED, 32, Short.MAX_VALUE)
-                .addGroup(jPanel9Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
+                .addGroup(jpSummaryCountsLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
                     .addComponent(btnPPIInfo, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                     .addComponent(jPanel22, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
                 .addContainerGap())
@@ -2467,7 +2556,7 @@ public class FDRGUI extends javax.swing.JFrame {
                     .addComponent(jLabel12, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                     .addComponent(txtSumInput))
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addComponent(jPanel9, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                .addComponent(jpSummaryCounts, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                 .addContainerGap())
         );
         jPanel8Layout.setVerticalGroup(
@@ -2478,7 +2567,7 @@ public class FDRGUI extends javax.swing.JFrame {
                         .addComponent(jLabel12)
                         .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                         .addComponent(txtSumInput, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
-                    .addComponent(jPanel9, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                    .addComponent(jpSummaryCounts, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
                 .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
         );
 
@@ -2989,31 +3078,40 @@ public class FDRGUI extends javax.swing.JFrame {
 
     private void btnPSMInfoActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnPSMInfoActionPerformed
         if (getResult() != null) {
-            new FDRLevelInformations(getResult().psmFDR, "PSM FDR").setVisible(true);
+            new FDRLevelInformations(getResult().getPsmFDR(), "PSM FDR").setVisible(true);
         }
     }//GEN-LAST:event_btnPSMInfoActionPerformed
 
     private void btnPepInfoActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnPepInfoActionPerformed
         if (getResult() != null) {
-            new FDRLevelInformations(getResult().peptidePairFDR, "Peptide-Pair FDR").setVisible(true);
+            new FDRLevelInformations(getResult().getPeptidePairFDR(), "Peptide-Pair FDR").setVisible(true);
         }
     }//GEN-LAST:event_btnPepInfoActionPerformed
 
     private void btnProtInfoActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnProtInfoActionPerformed
         if (getResult() != null) {
-            new FDRLevelInformations(getResult().proteinGroupFDR, "Protein Group FDR").setVisible(true);
+            if (getResult().getSelfBoostStatus() == null) {
+                new FDRLevelInformations(getResult().getProteinGroupFDR(), "Protein Group FDR").setVisible(true);
+            } else {
+                FDRResultLevel<ProteinGroup>[] levels = new FDRResultLevel[]{
+                    getResult().getSelfBoostStatus().result.getProteinGroupFDR(),
+                    getResult().getBetweenBoostStatus().result.getProteinGroupFDR()
+                };
+                String[] names = {"Self Boost", "Between Boost"};
+                new FDRLevelInformations(levels, names, "Protein Group FDR").setVisible(true);
+            }
         }
     }//GEN-LAST:event_btnProtInfoActionPerformed
 
     private void btnLinkInfoActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnLinkInfoActionPerformed
         if (getResult() != null) {
-            new FDRLevelInformations(getResult().proteinGroupLinkFDR, "Protein Group Link FDR").setVisible(true);
+            new FDRLevelInformations(getResult().getProteinGroupLinkFDR(), "Protein Group Link FDR").setVisible(true);
         }
     }//GEN-LAST:event_btnLinkInfoActionPerformed
 
     private void btnPPIInfoActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnPPIInfoActionPerformed
         if (getResult() != null) {
-            new FDRLevelInformations(getResult().proteinGroupPairFDR, "Protein Group Pairs FDR").setVisible(true);
+            new FDRLevelInformations(getResult().getProteinGroupPairFDR(), "Protein Group Pairs FDR").setVisible(true);
         }
     }//GEN-LAST:event_btnPPIInfoActionPerformed
 
@@ -3205,6 +3303,8 @@ public class FDRGUI extends javax.swing.JFrame {
         });
         return gui;
     }
+    private javax.swing.JLabel lblBoostRoundNote;
+
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.ButtonGroup bgFDRSettingType;
     private javax.swing.ButtonGroup bgScoreDirectionMzIdentML;
@@ -3281,7 +3381,6 @@ public class FDRGUI extends javax.swing.JFrame {
     private javax.swing.JPanel jPanel21;
     private javax.swing.JPanel jPanel22;
     private javax.swing.JPanel jPanel8;
-    private javax.swing.JPanel jPanel9;
     private javax.swing.JScrollPane jScrollPane1;
     private javax.swing.JScrollPane jScrollPane2;
     private javax.swing.JScrollPane jScrollPane3;
@@ -3291,6 +3390,7 @@ public class FDRGUI extends javax.swing.JFrame {
     private javax.swing.JSplitPane jSplitPane1;
     private javax.swing.JTabbedPane jTabbedPane1;
     private javax.swing.JTabbedPane jTabbedPane4;
+    private javax.swing.JPanel jpSummaryCounts;
     private javax.swing.JLabel lblDecoyDB;
     private javax.swing.JLabel lblLinkDB;
     protected javax.swing.JLabel lblMzMLScan2ID;
