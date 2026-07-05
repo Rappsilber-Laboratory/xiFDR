@@ -754,6 +754,7 @@ public class CSVinFDR extends OfflineFDR {
                 + "--delimiter              what separates fields in the file\n"
                 + "--quote                  how are text fields qoted\n"
                 + "                         e.g. each field that contains the\n"
+                + "                         delimiter needs to be in quotes\n"
                 + "--filter                 text filter for what rows to read in. E.g.:\n"
                 + "                         \"[crosslinker] = 'BS3'\" AND [Charge] >= 4\"\n"
                 + "--decoy-prefix           prefix used to denote decoy accessions\n"
@@ -812,7 +813,7 @@ public class CSVinFDR extends OfflineFDR {
                     System.exit(-1);
                 }
             } else if(arg.toLowerCase().startsWith("--filter=")) {
-                this.filter = arg.substring("--inputlocale=".length());
+                this.filter = arg.substring("--filter=".length());
             } else if(arg.toLowerCase().startsWith("--decoy-prefix=")) {
                 String prefix = arg.substring("--decoy-prefix=".length());
                 if (!prefix.toLowerCase().trim().contentEquals("auto")) {
