@@ -47,7 +47,7 @@ public class FDRLevelInformations extends javax.swing.JFrame {
                     new double[] {
                         sg.higherFDR*100, 
                         sg.lowerFDR*100, 
-                        sg.targteFDR*100, 
+                        sg.targetFDR*100, 
                         sg.firstPassingFDR*100
                     },1);
             
@@ -55,7 +55,7 @@ public class FDRLevelInformations extends javax.swing.JFrame {
             rowString[0] = sg.fdrGroup;
             rowString[1] = ""+sg.inputCount;
             
-            rowString[2] = sg.targteFDR >=+ 1 ? "unrestricted" : ""+(sg.targteFDR * 100);
+            rowString[2] = sg.targetFDR >=+ 1 ? "unrestricted" : ""+(sg.targetFDR * 100);
             rowString[3] = String.format(formatString + "%% FP",sg.firstPassingFDR*100);
             rowString[4] = String.format("<"+ formatString + "%% H", sg.higherFDR*100);
             rowString[5] = String.format(">"+ formatString + "%% L", sg.lowerFDR*100);
@@ -93,7 +93,7 @@ public class FDRLevelInformations extends javax.swing.JFrame {
                         new double[] {
                             sg.higherFDR*100, 
                             sg.lowerFDR*100, 
-                            sg.targteFDR*100, 
+                            sg.targetFDR*100, 
                             sg.firstPassingFDR*100
                         },1);
 
@@ -102,7 +102,7 @@ public class FDRLevelInformations extends javax.swing.JFrame {
                 rowString[1] = sg.fdrGroup;
                 rowString[2] = ""+sg.inputCount;
 
-                rowString[3] = sg.targteFDR >=+ 1 ? "unrestricted" : ""+(sg.targteFDR * 100);
+                rowString[3] = sg.targetFDR >= 1 ? "unrestricted" : ""+(sg.targetFDR * 100);
                 rowString[4] = String.format(formatString + "%% FP",sg.firstPassingFDR*100);
                 rowString[5] = String.format("<"+ formatString + "%% H", sg.higherFDR*100);
                 rowString[6] = String.format(">"+ formatString + "%% L", sg.lowerFDR*100);

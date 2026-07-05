@@ -3303,11 +3303,11 @@ public abstract class OfflineFDR {
      */
     public <T extends AbstractFDRElement<T>> String checkValid(SubGroupFdrInfo<T> info, double factor, int minTDCount) {
         // make sure we have enough targets that we could theoretically thsi number of TD 
-        if (info.resultTT * info.targteFDR < (double) minTDCount) {
+        if (info.resultTT * info.targetFDR < (double) minTDCount) {
             return "not enough TT";
         }
 
-        if ((info.targteFDR < 1 && info.resultTT < info.resultDD) || info.resultTD < info.resultDD) {
+        if ((info.targetFDR < 1 && info.resultTT < info.resultDD) || info.resultTD < info.resultDD) {
             return "to many DD";
         }
 
@@ -3315,7 +3315,7 @@ public abstract class OfflineFDR {
             return "resolution to bad";
         }
 
-        if (info.resultTT * info.targteFDR < factor * 10) {
+        if (info.resultTT * info.targetFDR < factor * 10) {
             return "resolution to bad";
         }
 
@@ -3552,7 +3552,7 @@ public abstract class OfflineFDR {
                 + "                         calculation\n"
                 + "--csvOutDir=X            where to write the output files\n"
                 + "--csvBaseName=X          each file will be prepended with \n"
-                + "                         this name"
+                + "                         this name\n"
                 + "--csvSummaryOnly         don;t write the actuall results but\n"
                 + "                         only the summary\n"
                 + "--singleSummary          if fdrs where given in ranges all\n"
@@ -3567,8 +3567,8 @@ public abstract class OfflineFDR {
                 + "--boost-selfbetween      when boosting first maximize self links,\n"
                 + "                         then maximize betweens\n"
                 + "--validitycheck          only accept subgroups that pass the validity check\n"
-                + "--validitymindecoy=X     sub groups are considered invalid if "
-                + "                         not at least X(default: 2) TD macthes "
+                + "--validitymindecoy=X     sub groups are considered invalid if\n"
+                + "                         not at least X(default: 2) TD macthes\n"
                 + "                         would be possible\n"
                 + "--single-step-boost      if certain columns are found these are\n"
                 + "                         used boosting as well. By default they\n"
@@ -5830,7 +5830,7 @@ public abstract class OfflineFDR {
                 // Build a combined group without mutating either input
                 SubGroupFdrInfo<T> combined = new SubGroupFdrInfo<>();
                 combined.fdrGroup = sg.fdrGroup;
-                combined.targteFDR = sg.targteFDR;
+                combined.targetFDR = sg.targetFDR;
                 combined.saftyfactor = sg.saftyfactor;
                 combined.TCount = sg.TCount;
                 combined.DCount = sg.DCount;

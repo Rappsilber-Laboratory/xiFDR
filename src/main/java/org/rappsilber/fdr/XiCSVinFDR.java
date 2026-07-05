@@ -214,7 +214,7 @@ public class XiCSVinFDR extends CSVinFDR implements XiInFDR{
                 + "--xiversion=            what xiSEARCH version was used\n"
                 + "                        can be used more themn ones and is applied to all\n"
                 + "                        input files listed after)\n"
-                + "--fasta=                fasta file searched"
+                + "--fasta=                fasta file searched\n"
                 + "--flagModifications     should modified peptide make their own sub-group\n"
                 + "--writemzid             also write out an mzIdentML result file\n"
                 + "--lastowner             instead of asking for an mzIdentML document owner\n"

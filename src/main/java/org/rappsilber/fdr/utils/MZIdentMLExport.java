@@ -761,7 +761,6 @@ public class MZIdentMLExport {
                                 xlModParam.setValue(Integer.toString(xlModId));
                                 mod.getCvParam().add(xlModParam);
                                 mod.getCvParam().addAll(stubs);
-                                mod.getCvParam().addAll(stubs);
                                 mzidPep.getModification().add(mod);
                             }
                         } else {

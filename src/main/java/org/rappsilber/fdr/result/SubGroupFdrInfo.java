@@ -39,7 +39,7 @@ public class SubGroupFdrInfo<T extends FDRSelfAdd> implements Iterable<T> {
     public int resultTT;
 
     /**  target fdr */
-    public double targteFDR;
+    public double targetFDR;
     /**  some safety factor for reporting */
     public double saftyfactor;
 

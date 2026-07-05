@@ -59,7 +59,7 @@ public class FDRImplementTest {
         info.TT = 8;
         info.TD = 2;
         info.DD = 0;
-        info.targteFDR = 0.15;
+        info.targetFDR = 0.15;
         info.saftyfactor = 1_000_000;
 
         double returned = newFdrImplement().subFDR(group, results, true, info);
@@ -100,7 +100,7 @@ public class FDRImplementTest {
         info.TT = 8;
         info.TD = 1;
         info.DD = 1;
-        info.targteFDR = 0.15;
+        info.targetFDR = 0.15;
         info.saftyfactor = 1_000_000;
 
         double returned = newFdrImplement().subFDR(group, results, true, info);
@@ -135,7 +135,7 @@ public class FDRImplementTest {
         info.TT = 4;
         info.TD = 1;
         info.DD = 0;
-        info.targteFDR = 0.3;
+        info.targetFDR = 0.3;
         info.saftyfactor = 1.0;
 
         double returned = newFdrImplement().subFDR(group, results, true, info);
@@ -169,7 +169,7 @@ public class FDRImplementTest {
         info.TT = 3;
         info.TD = 1;
         info.DD = 0;
-        info.targteFDR = 0;
+        info.targetFDR = 0;
         info.saftyfactor = 1.0;
 
         double returned = newFdrImplement().subFDR(group, results, true, info);
@@ -215,7 +215,7 @@ public class FDRImplementTest {
         standaloneInfo.TT = 16;
         standaloneInfo.TD = 3;
         standaloneInfo.DD = 1;
-        standaloneInfo.targteFDR = 0.2;
+        standaloneInfo.targetFDR = 0.2;
         standaloneInfo.saftyfactor = settings.getReportFactor();
         ArrayList<FakeFDRElement> standaloneResults = new ArrayList<>();
         fdrImpl.subFDR(standaloneGroup, standaloneResults, true, standaloneInfo);

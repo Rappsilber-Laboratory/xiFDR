@@ -166,7 +166,7 @@ public class FDRImplement implements FDR {
 
             ArrayList<T> groupResult = new ArrayList<T>();
             info.inputCount = group.size();
-            info.targteFDR = fdr;
+            info.targetFDR = fdr;
             info.saftyfactor = safetyfactor;
             info.fdrGroup = fdrgroup;
             info.useAdditiveFDR = fdrgroup.contains("Overlapping");
@@ -220,7 +220,7 @@ public class FDRImplement implements FDR {
             Logger.getLogger(this.getClass().getName()).log(Level.FINE, "Join up discarded groups to try and get some more results");
             if (discardedGroupsBetween >1) {
                 ArrayList<T> groupResult = new ArrayList<T>();
-                collectedBetween.targteFDR = fdr;
+                collectedBetween.targetFDR = fdr;
                 collectedBetween.saftyfactor = safetyfactor;
                 collectedBetween.fdrGroup = "CollectedResultsBetween [" + collectedBetween.fdrGroup + "]";
                 if (localFDR == null || localFDR) {
@@ -248,7 +248,7 @@ public class FDRImplement implements FDR {
             if (collectedElementsOthers.size() > 1) {
                 ArrayList<T> groupResultwithin = new ArrayList<T>();
 
-                collectedOthers.targteFDR = fdr;
+                collectedOthers.targetFDR = fdr;
                 collectedOthers.saftyfactor = safetyfactor;
                 collectedOthers.fdrGroup = "CollectedSmallResultsOthers  [" + collectedOthers.fdrGroup + "]";
                 if (localFDR == null || localFDR) {
@@ -512,7 +512,7 @@ public class FDRImplement implements FDR {
         int TD = info.TD;
         int DD = info.DD;
 
-        double fdr = info.targteFDR;
+        double fdr = info.targetFDR;
 
         if (fdr >= 1) {
             fdr = Double.POSITIVE_INFINITY;

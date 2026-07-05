@@ -30,16 +30,16 @@ public class ValidityCheckImplementTest {
     @CsvSource(value = {
         "1.0,    0,    0, 100, 2, 0,   NULL",
         "0.05,  10,    0,   0, 2, 0,   not enough TT",
-        "0.5,    2,   10,   5, 0, 0,   to many DD",
-        "0.5,  100,    2,   5, 2, 0,   to many DD",
-        "0.5,   10,    2,   2, 2, 0.5, resolution to bad (TD vs DD)",
-        "0.1,    5,   10,   1, 0, 0.1, resolution to bad (TT count)",
+        "0.5,    2,   10,   5, 0, 0,   too many DD",
+        "0.5,  100,    2,   5, 2, 0,   too many DD",
+        "0.5,   10,    2,   2, 2, 0.5, resolution too bad (TD vs DD)",
+        "0.1,    5,   10,   1, 0, 0.1, resolution too bad (TT count)",
         "0.05, 1000,  10,   1, 2, 0,   NULL"
     }, nullValues = "NULL")
     void checkValid_evaluatesEachBranch(double targetFDR, int resultTT, int resultTD, int resultDD,
             int minTD, double factor, String expected) {
         SubGroupFdrInfo<FakeFDRElement> info = new SubGroupFdrInfo<>();
-        info.targteFDR = targetFDR;
+        info.targetFDR = targetFDR;
         info.resultTT = resultTT;
         info.resultTD = resultTD;
         info.resultDD = resultDD;
@@ -52,7 +52,7 @@ public class ValidityCheckImplementTest {
     @Test
     void checkValid_oneArgDelegatesToConstructorFactorAndMinTD() {
         SubGroupFdrInfo<FakeFDRElement> info = new SubGroupFdrInfo<>();
-        info.targteFDR = 0.05;
+        info.targetFDR = 0.05;
         info.resultTT = 10;
         info.resultTD = 0;
         info.resultDD = 0;
@@ -62,7 +62,7 @@ public class ValidityCheckImplementTest {
         assertEquals("not enough TT", valid.checkValid(info));
 
         SubGroupFdrInfo<FakeFDRElement> passing = new SubGroupFdrInfo<>();
-        passing.targteFDR = 0.05;
+        passing.targetFDR = 0.05;
         passing.resultTT = 1000;
         passing.resultTD = 10;
         passing.resultDD = 1;

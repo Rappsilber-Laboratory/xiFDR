@@ -27,8 +27,8 @@ public interface FDRSettings {
     public enum BoostMode {
         NONE("No Boosting", "Don't try to boost"),
         ALL("All", "Boost all crosslinked items as one list (typically favours self matches)"),
-        BETWEEN("Between", "Boost to increase protein heteromeric matches (typically heavily disvafours self matches)"),
-        SELFBETWEEN("Self+Between", "Bost first self matches and then protein heteromeric matches");
+        BETWEEN("Between", "Boost to increase protein heteromeric matches (typically heavily disfavours self matches)"),
+        SELFBETWEEN("Self+Between", "Boost first self matches and then protein heteromeric matches");
 
         private final String name;
         private final String description;
@@ -109,11 +109,21 @@ public interface FDRSettings {
     /** @deprecated Use {@link #getBoostMode()} instead. */
     default boolean getBoostBetween() { return getBoostMode() == BoostMode.BETWEEN; }
     /** @deprecated Use {@link #setBoostMode(BoostMode)} instead. */
-    default void setBoostBetween(boolean between) { if (between) setBoostMode(BoostMode.BETWEEN); }
+    default void setBoostBetween(boolean between) { 
+        if (between) 
+            setBoostMode(BoostMode.BETWEEN); 
+        else if (getBoostMode() == BoostMode.BETWEEN) 
+            setBoostMode(BoostMode.ALL);
+    }
     /** @deprecated Use {@link #getBoostMode()} instead. */
     default boolean getBoostSelfAndBetween() { return getBoostMode() == BoostMode.SELFBETWEEN; }
     /** @deprecated Use {@link #setBoostMode(BoostMode)} instead. */
-    default void setBoostSelfAndBetween(boolean selfAndBetween) { if (selfAndBetween) setBoostMode(BoostMode.SELFBETWEEN); }
+    default void setBoostSelfAndBetween(boolean selfAndBetween) { 
+        if (selfAndBetween) 
+            setBoostMode(BoostMode.SELFBETWEEN); 
+        else if (getBoostMode() == BoostMode.SELFBETWEEN) 
+            setBoostMode(BoostMode.ALL);
+    }
 
     enum CrosslinkType { ALL, SELF, BETWEEN }
 

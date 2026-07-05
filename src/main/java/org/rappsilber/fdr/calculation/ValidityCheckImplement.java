@@ -45,29 +45,29 @@ public class ValidityCheckImplement implements CheckValid {
      */
     @Override
     public <T extends AbstractFDRElement<T>> String checkValid(SubGroupFdrInfo<T> info, int minTDCount, double factor) {
-        if (info.targteFDR>=1)
+        if (info.targetFDR>=1)
             return null;
         // make sure we have enough targets that we could theoretically thsi number of TD 
-        if (info.resultTT * info.targteFDR < (double) minTDCount) {
+        if (info.resultTT * info.targetFDR < (double) minTDCount) {
             return "not enough TT";
         }
 
         if (info.useAdditiveFDR) {
             // overlap case: FDR = (TD+DD)/TT; TD≈0 is expected, so DD>TD is normal
-            if (info.targteFDR < 1 && info.resultTT < info.resultDD) {
-                return "to many DD";
+            if (info.targetFDR < 1 && info.resultTT < info.resultDD) {
+                return "too many DD";
             }
         } else {
-            if ((info.targteFDR < 1 && info.resultTT < info.resultDD) || info.resultTD < info.resultDD) {
-                return "to many DD";
+            if ((info.targetFDR < 1 && info.resultTT < info.resultDD) || info.resultTD < info.resultDD) {
+                return "too many DD";
             }
             if ((info.resultDD + 0.00001) / (info.resultTD + 0.0001) > 1 - factor) {
-                return "resolution to bad (TD vs DD)";
+                return "resolution too bad (TD vs DD)";
             }
         }
 
-        if (info.resultTT * info.targteFDR < factor * 10) {
-            return "resolution to bad (TT count)";
+        if (info.resultTT * info.targetFDR < factor * 10) {
+            return "resolution too bad (TT count)";
         }
 
         return null;
