@@ -756,7 +756,7 @@ public class CSVinFDR extends OfflineFDR {
                 + "                         e.g. each field that contains the\n"
                 + "                         delimiter needs to be in quotes\n"
                 + "--filter                 text filter for what rows to read in. E.g.:\n"
-                + "                         \"[crosslinker] = 'BS3'\" AND [Charge] >= 4\"\n"
+                + "                         \"[crosslinker] = 'BS3' AND [Charge] >= 4\"\n"
                 + "--decoy-prefix           prefix used to denote decoy accessions\n"
                 + "                         if empty RAN_, REV_ and DECOY: are tried\n";
         
