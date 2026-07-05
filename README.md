@@ -56,7 +56,7 @@ xiFDR allows the user to filter for the desired FDR at the level or levels of in
 | Protein Group                            | the group of proteins sharing the sequence making up the ambiguous group                                                                        |
 | Prefilter                                | a score filter applied prior to FDR calculation to both target and decoy matches                                                                |
 | Local FDR/poterior error probability/PEP | the estimation of FDR of a particular match based on a windowed approach or a fitting of the score distributions.                               |
-| Boosting                                 | a grid search approach optimising settings to maximise the number of matches passing a given FDR threshold                                      |
+|                                  | a grid search approach optimising settings to maximise the number of matches passing a given FDR threshold                                      |
 | DeltaScore                               | The score of the best explanation of a CSM/residue pair etc. divided by the second best explanation                                             |
 | Conservative                             | An explanation of a spectral feature where non-lossy matches are weighted more heavily than lossy ones.                                         |
 | Coverage                                 | number of fragments matched / max number of theoretical fragments                                                                               |
@@ -117,7 +117,7 @@ The prefilters may be toggled in the "input" tab by clicking the "filter" option
 
 Notice that these are not meant to be used blindly all at once! In fact, at most one or two of these should be used depending on the nature of the dataset.
 
-MS-cleavable crosslinkers present several advantages. Their signature crosslinker stubs and peptide doublets help to provide extra confidence, that the peptide masses are correct. This increases the chance that the peptides themselves are correctly identified. xiFDR can make the most out of these features by prefiltering spectra on a minimum of crosslinker stubs observed, and then boosting on stubs and doublets.
+MS-cleavable crosslinkers present several advantages. Their signature crosslinker stubs and peptide doublets help to provide extra confidence, that the peptide masses are correct. This increases the chance that the peptides themselves are correctly identified. xiFDR can make the most out of these features by prefiltering spectra on a minimum of crosslinker stubs observed, and then  on stubs and doublets.
 
 
 #### Loading search results from other crosslinking MS search engines
@@ -214,7 +214,7 @@ For xiSEARCH results there some more columns that are important for the mzIdentM
 
 In the "FDR settings", one can perform the actual FDR filtering. 
 
-By default, the view is set to "reduced FDR", which shows just the basic settings. The cutoff is set at 5% at the residue pair level, meaning the  error will be propagated so that 5% of the residue pairs correspond to a wrong/random match. The "boosting" features is enabled (see below for more details). These are perfectly acceptable FDR filtering settings for experiments aimed at characterising the crosslinks in a purified protein complex and should give a good idea of the number of crosslinks detectable with reasonable certainty in the sample. In analyses of cellular fractions or searches with hundreds of proteins in the database, it is advisable to also include an FDR cutoff at the "Protein Pairs" level. Similarly, in analyses devoted to method development on the quality of spectra, a filter at the "PSM" is advised.
+By default, the view is set to "reduced FDR", which shows just the basic settings. The cutoff is set at 5% at the residue pair level, meaning the  error will be propagated so that 5% of the residue pairs correspond to a wrong/random match. The "" features is enabled (see below for more details). These are perfectly acceptable FDR filtering settings for experiments aimed at characterising the crosslinks in a purified protein complex and should give a good idea of the number of crosslinks detectable with reasonable certainty in the sample. In analyses of cellular fractions or searches with hundreds of proteins in the database, it is advisable to also include an FDR cutoff at the "Protein Pairs" level. Similarly, in analyses devoted to method development on the quality of spectra, a filter at the "PSM" is advised.
 Whenever multiple cutoffs are selected (e.g. both residue pairs and PPI level at 5%), xiSEARCH will report only the entries at lower levels that also pass the upper level. 
 For example, only the residue pairs that will pass both the residue pair and PPI level thresholds will be considered as passing the FDR. Notice that in these cases the results files at lower levels will have less decoy lines than the stated FDR threshold at that particular level (as only the targets and decoys passing also the higher level are reported). Thus, these files cannot be used to recompute an estimate of the false positive rate, as the decoy-based FDR would drastically underestimate the FPR. Thus: with both residue pair and PPI level FDR, the number of decoys in the "Links" csv cannot be used as a basis of analyses that recompute apparent decoy-based FDR. For these analyses, the use of a threshold at a single level (the one of interest) is recommended.
 
@@ -240,30 +240,30 @@ All FDR settings:
 
 Settings in the "more" panel:
 
-These are minimum filters that essentially act as prefilters prior to FDR calculation. The difference between setting them here versus in the "input" tab is that these parameters can then be part of the boosting grid search (see below).
+These are minimum filters that essentially act as prefilters prior to FDR calculation. The difference between setting them here versus in the "input" tab is that these parameters can then be part of the  grid search (see below).
 
 | Setting                | Description                                                                | when to use                                                                                         |
 |------------------------|----------------------------------------------------------------------------|-----------------------------------------------------------------------------------------------------|
 | min. peptide fragments | minimum observed fragments per peptide                                     | 0 by default, increase number in SDA searches                                                       |
-| min. coverage          | number between 0 and 1. Minimum fraction of theoretical fragments required | included in boosting                                                                                |
-| min. coverage          | number between 0 and 1. Minimum fraction of theoretical fragments required | included in boosting                                                                                |
-| min. peptide stubs     | minimum number of fragment stubs observed                                  | important for MS-cleavable crosslinkers, included in boosting                                       |
-| min. peptide doublets  | minimum number of  peptide doublets observed                               | important for MS-cleavable crosslinker searches, included in boosting                               |
-| min. score             | minimum spectral match score                                               | for searches with a small database where FDR may not be properly computed, not included in boosting |
-| boost separately|boosting in two steps - first on the lower level FDRs and in a second step change optimize these pre-filter| on by default                                                     |
+| min. coverage          | number between 0 and 1. Minimum fraction of theoretical fragments required | included in                                                                                 |
+| min. coverage          | number between 0 and 1. Minimum fraction of theoretical fragments required | included in                                                                                 |
+| min. peptide stubs     | minimum number of fragment stubs observed                                  | important for MS-cleavable crosslinkers, included in                                        |
+| min. peptide doublets  | minimum number of  peptide doublets observed                               | important for MS-cleavable crosslinker searches, included in                                |
+| min. score             | minimum spectral match score                                               | for searches with a small database where FDR may not be properly computed, not included in  |
+| boost separately| in two steps - first on the lower level FDRs and in a second step change optimize these pre-filter| on by default                                                     |
 
 The settings in "define groups" are currently very beta and unsupported. They allow for splitting the dataset further down into custom groups for FDR calculation.
 
-#### Boosting
+#### 
 xiFDR's boosting feature performs a grid search to optimise FDR settings at lower levels to reach the maximum number of matches passing validation at the desired FDR level. For example, enabling boosting for a residue pair-level FDR of 5% will tweak PSM, peptide pair and protein group level FDR cutoffs to maximise the number of residue pairs passing the 5% FDR threshold.
 
 Boosting is performed with a grid search of parameters as described in [Fisher et al. 2017](https://pubs.acs.org/doi/pdf/10.1021/acs.analchem.6b03745). 
 
 The user may control which parameters are part of boosting by changing the selection in the "boosting includes" button.
 
-The "steps" controls how many steps of the grid search per parameter are tested each round of optimization. The "between" box ensures that boosting is performed to maximise the number of heteromeric residue pairs/PPIs etc. passing FDR rather than the overall number. This is recommended for searches where the goal is to produce a protein-protein interaction network and where large numbers of heteromeric crosslinks are available.
+The "steps" controls how many steps of the grid search per parameter are tested each round of optimization. There are several options for boosting: "None" for no boosting; "All" for boosting allmatches on the selected level as one, this usually strongly favours self-links; "Between" for focusing the boosting primarily on protein heteromeric matches, usually to the disfavour of self-links; "Self+Between" which boost first for self-links and then seperatly for protein heteromeric matches. "Between" or "Self+Between" is recommended for searches where the goal is to produce a protein-protein interaction network and where large numbers of heteromeric crosslinks are available.
 
-We recommend leaving boosting on and selecting "between" if desired. For experiments with MS-cleavable crosslinkers, we suggest also boosting on minimum peptide doublets by toggling those on in the "boost includes" menu.
+We recommend leaving boosting on and selecting "Self+Between" if desired. For experiments with MS-cleavable crosslinkers, we suggest also boosting on minimum peptide doublets by toggling those on in the "boost includes" menu.
 
 FDR calculations with boosting enabled can take some minutes to conclude.
 
