@@ -5,7 +5,7 @@ You can download the latest release of xiFDR **[here](https://www.rappsilberlab.
 
 xiFDR is an application for estimating false discovery rates (FDRs) in crosslinking mass spectrometry. It filters crosslinked peptide spectra matches (CSMs) to a list of identifications and derives associated confidence values.
 
-It performs a generic FDR calculations for CSMs and resulting peptide pairs, crosslinks and protein pairs. It complies with the standards for data reporting set by the HUPO proteomics standards initiative and can output results in .mzIdentML 1.2.0 format for deposition in databases. It is search engine-agnostic and can therefore perform FDR filtering on results from [xiSEARCH](https://github.com/Rappsilber-Laboratory/xisearch) but also other crosslinking MS search engines. The output can then be directly uploaded to [xiView.org](https://xiview.org/xiNET_website/index.php) for spectral analysis, network visualization and mapping to structures.
+It performs a generic FDR calculations for CSMs and resulting peptide pairs, crosslinks and protein pairs. It complies with the standards for data reporting set by the HUPO proteomics standards initiative and can output results in .mzIdentML 1.3.0 format for deposition in databases. It is search engine-agnostic and can therefore perform FDR filtering on results from [xiSEARCH](https://github.com/Rappsilber-Laboratory/xisearch) but also other crosslinking MS search engines. The output can then be directly uploaded to [xiView.org](https://xiview.org/xiNET_website/index.php) for spectral analysis, network visualization and mapping to structures.
 
 
 For questions regarding usage of xiFDR, please open a [discussion](https://github.com/Rappsilber-Laboratory/XiSearch/discussions).
@@ -89,7 +89,8 @@ To load results from xiSEARCH, only use the top half of the "input" tab containi
 
 xiSEARCH outputs results in a .csv file that contains all crosslinked peptide spectrum matches (CSMs) and scores. It includes target-target matches, target-decoy and decoy-decoy matches.
 
-Select the xiSEARCH .csv results file. The .fasta database and the .config file used in the search should also be uploaded in the respective boxes if available. Fasta and config file are required  to write out results in .mzIdentML format. **These should be set before pressing "read".**
+Select the xiSEARCH .csv results file. The .fasta database and the .config file used in the search should also be uploaded in the respective boxes if available. Fasta and config file are required  to write out results in .mzIdentML format. 
+ **These should be set before pressing "read".** See the [xiSEARCH documentation](https://github.com/Rappsilber-Laboratory/XiSearch?tab=readme-ov-file#the-files-tab) for details on what .fasta files generate meaningful accessions, protein names and descriptions in mzIdentML.
 
 Any prefilters on spectral quality (see below) should be set by ticking the "filter" box.
 
@@ -258,7 +259,7 @@ xiFDR's boosting feature performs a grid search to optimise FDR settings at lowe
 
 Boosting is performed with a grid search of parameters as described in [Fisher et al. 2017](https://pubs.acs.org/doi/pdf/10.1021/acs.analchem.6b03745). 
 
-The user may control which parameters are part of boosting by changing the selection in the "boosting includes" button. 
+The user may control which parameters are part of boosting by changing the selection in the "boosting includes" button.
 
 The "steps" controls how many steps of the grid search per parameter are tested each round of optimization. The "between" box ensures that boosting is performed to maximise the number of heteromeric residue pairs/PPIs etc. passing FDR rather than the overall number. This is recommended for searches where the goal is to produce a protein-protein interaction network and where large numbers of heteromeric crosslinks are available.
 
@@ -286,11 +287,25 @@ The extreme flexibility of xiFDR requires some careful use. Here are some of our
 
 
 ### Results summary
-After the calculation is complete (check the log tab, the lower bottom left of the window or the "calculate" button becoming clickable again), the results tab presents a summary of all matches passing the FDR threshold with the number of decoys and target-decoys in each category. Remember the ratio of targets and decoys passing determines the accuracy of the FDR estimation.
+After the calculation is complete (check the log tab, the lower bottom left of the window or the "calculate" button becoming clickable again), the results tab presents a summary of all matches passing the FDR threshold with the number of decoys and target-decoys in each category. 
+Remember the ratio of targets and decoys passing determines the accuracy of the FDR estimation. 
+This is where one must **carefully** check if the number of target-target (TT) identifications as a fraction of total identifications makes sense with the stated FDR.
+
+As an example, seeing the following in the residue pair between box:
+
+    123 (115 TT)
+
+makes sense if one requests an FDR of 5% at the residue pair level. On the other hand, seeing
+
+    50 (20 TT)
+
+makes no sense and should only happen as a result of too many decoy-decoy passing the filter (which triggers a warning) and breaking down the basic FDR assumptions. 
+Because of the FDR formula, too many decoy-decoy may actually artificially reduce the apparent FDR (TD-DD is in the numerator). 
+Thus, if the number of target-target hits does not square with the FDR (and the program should have printed a warning about it), the results should be considered invalid for the level of analysis requested.
 
 ### Writing out search results
 
-Results may be written out in xiFDR .csv format (csv tab) or in mzIdentML1.2.0 format. 
+Results may be written out in xiFDR .csv format (csv tab) or in mzIdentML1.3.0 format. 
 The csv format writes human-readable tables of identifications and the mzIdentML writes a standards-compliant results for later deposition or upload to [xiView.org](https://www.xiview.org).
 
 The mzIdentML can only be generated if xiFDR is provided with .fasta file and search config file (from xiSEARCH) prior to reading in results.
@@ -312,7 +327,9 @@ Beware that if multiple FDR thresholds are set, *only* the matches passing all l
 This can result in a lower number of decoys at a given FDR level than the reported FDR number. Meaning, when filtering for both 5% residue pair FDR and 5% protein pair FDR the resulting residue pair file will contain only decoys that reach the protein pair level. This should not be misconstrued as having only as many false positives left at the residue pair level as you have decoys residue pairs: the protein pair filter basically invalidates any follow up decoy based error estimation at the lower residue pair level. Thus, any FDR at a higher level of aggregation (eg. protein pair vs CSM) will prevent a meaningful analysis of false positives via decoys at lower levels.
 
 #### mzIdentML output
-will generate a single file .mzIdentML compliant with standards. The file can be deposited in ProteomeXchange repositories or uploaded to xiview.org for visualization. It contains information about the search results, peaks and validation. Reading in the xiSEARCH "config" file in the "input" tab is required for mzIdentML output.
+will generate a single file .mzIdentML compliant with standards. The file can be deposited in ProteomeXchange repositories (PRIDE) or uploaded to xiview.org for visualization. It contains information about the search results, peaks and validation. 
+Reading in the xiSEARCH "config" file in the "input" tab is required for mzIdentML output. In a PRIDE deposition, selecting it as a crosslinking MS dataset will deposit the results in [PRIDE crosslinking](https://www.ebi.ac.uk/pride/markdownpage/crosslinking)
+The mzIdentML output will also generate a summary csv file with all FDR settings.
 
 On some new versions of java (such as 17.0.6 2023-01-17), xiFDR produces the "ExceptionInitializerError" when writing mzIdentML output. In this case, edit the java command in the launcher script (on windows, startWindows.bat) to:
 
