@@ -261,9 +261,9 @@ Boosting is performed with a grid search of parameters as described in [Fisher e
 
 The user may control which parameters are part of boosting by changing the selection in the "boosting includes" button.
 
-The "steps" controls how many steps of the grid search per parameter are tested each round of optimization. The "between" box ensures that boosting is performed to maximise the number of heteromeric residue pairs/PPIs etc. passing FDR rather than the overall number. This is recommended for searches where the goal is to produce a protein-protein interaction network and where large numbers of heteromeric crosslinks are available.
+The "steps" controls how many steps of the grid search per parameter are tested each round of optimization. There are several options for boosting: "None" for no boosting; "All" for boosting all matches on the selected level as one, this usually strongly favours self-links; "Between" for focusing the boosting primarily on protein heteromeric matches, usually to the disfavour of self-links; "Self+Between" which boost first for self-links and then separately for protein heteromeric matches. "Between" or "Self+Between" is recommended for searches where the goal is to produce a protein-protein interaction network and where large numbers of heteromeric crosslinks are available.
 
-We recommend leaving boosting on and selecting "between" if desired. For experiments with MS-cleavable crosslinkers, we suggest also boosting on minimum peptide doublets by toggling those on in the "boost includes" menu.
+We recommend leaving boosting on and selecting "Self+Between" if desired. For experiments with MS-cleavable crosslinkers, we suggest also boosting on minimum peptide doublets by toggling those on in the "boost includes" menu.
 
 FDR calculations with boosting enabled can take some minutes to conclude.
 
