@@ -375,7 +375,7 @@ public class CSVinFDR extends OfflineFDR {
                         if (c > 0 || (c==0 && site1 > site2) ) {
                             key=key +" P1_" + csv.getValue(cpep1) + " P2_" + csv.getValue(cpep2) + " " + (int)csv.getDouble(cpep1site) + " " + (int)csv.getDouble(cpep2site);
                         } else {
-                            key=key +" P1_" + csv.getValue(cpep2) + " P2_" + csv.getValue(cpep1) + " " + (int)csv.getDouble(cpep2site) + " " + (int)csv.getDouble(cpep1site);;
+                            key=key +" P1_" + csv.getValue(cpep2) + " P2_" + csv.getValue(cpep1) + " " + (int)csv.getDouble(cpep2site) + " " + (int)csv.getDouble(cpep1site);
                         }
                         //psmID = PSMIDs.toIntValue(key);
                         psmID = key;
@@ -398,7 +398,7 @@ public class CSVinFDR extends OfflineFDR {
                         peplen2 = pepSeq2.replaceAll("[^A-Z]", "").length();
                     }
                 else {
-                    peplen2 = (int)csv.getDouble(cpep2len, 0);
+                    peplen2 = (int)csv.getDouble(cpep2len, 0.0);
                 }
 
                 boolean isDecoy1 = csv.getBool(cpep1decoy,false);

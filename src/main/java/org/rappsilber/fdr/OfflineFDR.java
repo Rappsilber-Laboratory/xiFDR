@@ -1951,7 +1951,7 @@ public abstract class OfflineFDR {
             String header = csvFormater.valuesToString(getPSMHeader());
             try {
                 xiviewOut = new PrintWriter(xiviewName, csvcharset.name());
-                xiviewOut.println(getXiViewHeader());
+                xiviewOut.println(csvFormater.valuesToString(getXiViewHeader()));
                 psmOut = new PrintWriter(outName, csvcharset.name());
                 psmOut.println(header);
                 psmLinearOut = new PrintWriter(outNameLinear, csvcharset.name());
@@ -3812,6 +3812,7 @@ public abstract class OfflineFDR {
         int fdrDigits = commandlineFDRDigits;
         FDRLevel maximizeWhat = null;
         settings.doOptimize(null);
+        settings.setBoostMode(FDRSettings.BoostMode.NONE);
 
         for (String arg : argv) {
 
