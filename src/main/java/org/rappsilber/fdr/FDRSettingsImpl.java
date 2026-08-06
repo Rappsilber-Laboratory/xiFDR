@@ -33,7 +33,7 @@ public class FDRSettingsImpl implements FDRSettings {
     double ProteinGroupLinkFDR = 0.05;
     double ProteinGroupPairFDR = 1;
     int BoostingSteps = 4;
-    FDRSettings.BoostMode boostMode = FDRSettings.BoostMode.NONE;
+    FDRSettings.BoostMode boostMode = FDRSettings.BoostMode.SELFBETWEEN;
     FDRSettings.CrosslinkType crosslinkTypeFilter = FDRSettings.CrosslinkType.ALL;
     boolean LinkDirectional;
     boolean PPIDirectional;

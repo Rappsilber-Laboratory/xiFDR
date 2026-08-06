@@ -382,10 +382,18 @@ public class FDRGUI extends javax.swing.JFrame {
                 setting = true;
                 String filename = fbFolder.getText();
                 setCsvOut(XiFDRUtils.splitFilename(filename));
-                if (getCsvOut().tsv)
+                XiFDRUtils.FDRCSVOUT co = getCsvOut();
+                if (co.tsv)
                     rbTSV.setSelected(true);
-                if (getCsvOut().tsv)
+                else if (co.csv)
                     rbCSV.setSelected(true);
+                else if (rbCSV.isSelected()) {
+                    co.basename += co.extension;
+                    co.extension = ".csv";
+                } else if (rbTSV.isSelected()) {
+                    co.basename += co.extension;
+                    co.extension = ".tsv";
+                }
 
                 fbFolder.setFile(getCsvOut().folder + File.separator + getCsvOut().basename + getCsvOut().extension);
                 setting = false;

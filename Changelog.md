@@ -1,4 +1,10 @@
 
+2.4.1
+
+* Enforce tsv/txt/csv extension for write out of results
+* GUI now defaults to self+between boosting
+* BugFix: csv.getDouble() was initialised with int value
+
 2.4
 
 * Self and heteromeric matches can now boosted sequentially and (mostly) independently
