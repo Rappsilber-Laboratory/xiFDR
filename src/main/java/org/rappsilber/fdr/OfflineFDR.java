@@ -1257,6 +1257,8 @@ public abstract class OfflineFDR {
                     + psm.getPeptide2().getSequence() + "_!xl!_"
                     + psm.getPeptideLinkSite1() + "_!xl!_"
                     + psm.getPeptideLinkSite2() + "_!xl!_"
+                    + psm.getPeptide1().isDecoy() + "_!xl!_"
+                    + psm.getPeptide2().isDecoy() + "_!xl!_"
                     + psm.getCharge();
             // do we have already something under this key?
             PSM stored = uniquePSM.get(key);
@@ -1277,6 +1279,8 @@ public abstract class OfflineFDR {
                         + psm.getPeptide1().getSequence() + "_!xl!_"
                         + psm.getPeptideLinkSite2() + "_!xl!_"
                         + psm.getPeptideLinkSite1() + "_!xl!_"
+                        + psm.getPeptide2().isDecoy() + "_!xl!_"
+                        + psm.getPeptide1().isDecoy() + "_!xl!_"
                         + psm.getCharge();
                 stored = uniquePSM.get(key);
                 if (stored != null) {
