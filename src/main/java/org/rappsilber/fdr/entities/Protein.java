@@ -52,6 +52,7 @@ public class Protein extends AbstractFDRElement<Protein> {//implements Comparabl
     private Protein decoy_complement = null;
     
     public static String DECOY_PREFIX = null;
+    public static Pattern DEFAULT_DECOY_PATTERN = Pattern.compile("^(REV|RAN|RANDOM|SHUFFLE|REVERSE)[:_]", Pattern.CASE_INSENSITIVE);
     String zero = ""+(char)0;
     private Pattern zerosplit = Pattern.compile(zero);
     private Pattern spacesplit = Pattern.compile("^\\s*(\"[^\"]*\"|'[^']*'|\\([^)]*\\)|[^\\s]+)");
@@ -318,37 +319,38 @@ public class Protein extends AbstractFDRElement<Protein> {//implements Comparabl
      */
     public void setAccession(String a, String decoy_prefix) {
         accession = a;
+        if (decoy_prefix == null) {
+            Matcher ddm = DEFAULT_DECOY_PATTERN.matcher(accession);
+            if (ddm.matches()) {
+                accession = accession.substring(ddm.end());
+                this.isDecoy = true;
+            }
+        } else {
+            if (accession.startsWith(decoy_prefix)) {
+                this.isDecoy = true;
+                accession = accession.substring(decoy_prefix.length());
+            }
+                
+        }
         Matcher m = sptr_regex.matcher(a);
         if (m.matches()) {
             accession = m.group(1);
             //if (m.groupCount()>1 && m.group(2) != null && m.group(2).trim().length()>0)
             //    this.setName(m.group(2));
         }
-            
+
         if (decoy_prefix == null) {
-            // at some points we consider decoy and non decoy proteins the same. So 
-            // both get the same accession to make my life easier
-            if (accession.toUpperCase().startsWith("REV_") || accession.toUpperCase().startsWith("RAN_")) {
-                this.accession = accession.substring(4);
+            Matcher ddm = DEFAULT_DECOY_PATTERN.matcher(accession);
+            if (ddm.matches()) {
+                accession = accession.substring(ddm.end());
                 this.isDecoy = true;
-            } else if (accession.toUpperCase().startsWith("DECOY:")) {
-                this.isDecoy = true;
-                this.accession = accession.substring(6);
-            } else if (accession.toUpperCase().startsWith("REVERSE_")) {
-                this.isDecoy = true;
-                this.accession = accession.substring(8);
-            } else if (accession.toUpperCase().startsWith("RANDOM_")) {
-                this.isDecoy = true;
-                this.accession = accession.substring(7);
-            } else if (accession.toUpperCase().startsWith("SHUFFLE_")) {
-                this.isDecoy = true;
-                this.accession = accession.substring(8);
             }
         } else {
-            if (accession.toUpperCase().startsWith(decoy_prefix.toUpperCase())) {
+            if (accession.startsWith(decoy_prefix)) {
                 this.isDecoy = true;
-                this.accession = accession.substring(decoy_prefix.length());
+                accession = accession.substring(decoy_prefix.length());
             }
+                
         }
         this.decoy_complement = null;        
     }

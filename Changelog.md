@@ -1,4 +1,9 @@
 
+2.4.2
+
+* treat DECOY:sp|P12345|PROT_ORG the same as sp|DECOY:P12345|PROT_ORG
+* BugFix: Unique CSMs did not check if the underlying peptides had the same decoy state
+
 2.4.1
 
 * Enforce tsv/txt/csv extension for write out of results
@@ -9,7 +14,7 @@
 
 * Self and heteromeric matches can now boosted sequentially and (mostly) independently
 * Protein homomultimeric self links are now treated separately
-* BUGFIX config modifications missing leading to unknoqwn modification warning during mzIdentML export
+* BUGFIX config modifications missing leading to unknown modification warning during mzIdentML export
 
 2.3.10
 
