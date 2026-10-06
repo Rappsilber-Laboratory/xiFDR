@@ -203,12 +203,19 @@ public class XiCSVinFDR extends CSVinFDR implements XiInFDR{
     }    
     
     public String argList() {
-        return super.argList() + " --xiconfig=[path to config] --xiversion=[version] --fasta=[path to fasta] --flagModifications --gui --lastowner";
+        return super.argList() + " " + ownArgList();
+    }
+
+    public static String ownArgList() {
+        return "--xiconfig=[path to config] --xiversion=[version] --fasta=[path to fasta] --flagModifications --gui --lastowner";
     }
     
     public String argDescription() {
-        return super.argDescription() + "\n"
-                + "--xiconfig=             what xi config to use to turn find modifications\n"
+        return super.argDescription() + "\n" + ownArgDescription();
+    }
+
+    public static String ownArgDescription() {
+        return "--xiconfig=             what xi config to use to turn find modifications\n"
                 + "                        can be used more themn ones and is applied to all\n"
                 + "                        input files listed after\n"
                 + "--xiversion=            what xiSEARCH version was used\n"

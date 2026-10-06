@@ -3,7 +3,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>org.rappsilberlab</groupId>
     <artifactId>xiFDR</artifactId>
-    <version>2.4.2</version>
+    <version>2.4.3</version>
     <packaging>jar</packaging>
     <dependencies>
         <dependency>
@@ -152,6 +152,12 @@
 					<manifest>
 						<mainClass>org.rappsilber.fdr.CommandLine</mainClass>
 					</manifest>
+					<manifestEntries>
+						<!-- needed on java 16+ for "java -jar": jmzidentml rewrites
+						     annotation internals (sun.reflect.annotation) when reading
+						     mzIdentML; ignored by java 8 -->
+						<Add-Opens>java.base/sun.reflect.annotation java.base/java.lang java.base/java.util</Add-Opens>
+					</manifestEntries>
 				</archive>
 				<descriptorRefs>
 					<descriptorRef>jar-with-dependencies</descriptorRef>
@@ -222,5 +228,5 @@
         <maven.compiler.target>8</maven.compiler.target>
     </properties>
     <description>Application for FDR estimation cross-linking massspectrometry data </description>
-    <name>xiFDR-2.4.2</name>
+    <name>xiFDR-2.4.3</name>
 </project>

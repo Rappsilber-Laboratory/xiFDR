@@ -15,6 +15,7 @@
  */
 package org.rappsilber.fdr;
 
+import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
@@ -23,11 +24,13 @@ import java.sql.SQLException;
 import org.rappsilber.fdr.gui.FDRGUI;
 import java.lang.management.ManagementFactory;
 import java.lang.management.RuntimeMXBean;
+import java.text.ParseException;
 import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import rappsilber.config.DBConnectionConfig;
 
 /**
  * Proxy class that looks at the given arguments and then forwards the whole 
@@ -145,9 +148,11 @@ public class CommandLine {
     public static void main(String args[]) throws SQLException, FileNotFoundException {
         boolean xicsv  = false;
         boolean csv = false;
+        boolean mzid = false;
         boolean gui = true;
         boolean db = false;
         boolean dorestart=false;
+        int fileCount = 0;
 
         for (String a : args) {
             if (a.startsWith("--xiconfig=") || a.contentEquals("--gui")) {
@@ -156,14 +161,27 @@ public class CommandLine {
             } else if (a.startsWith("--dbids=")) {
                 db = true;
                 gui = false;
-            } else if (!a.startsWith("-")) {
+            } else if (!a.startsWith("-") && !(
+                    a.toLowerCase().endsWith("mzid") || a.toLowerCase().endsWith("mzidentml"))
+                    ) {
                 csv = true;
                 gui = false;
+                fileCount ++;
+            } else if (!a.startsWith("-") && (
+                    a.toLowerCase().endsWith("mzid") || a.toLowerCase().endsWith("mzidentml"))
+                    ) {
+                mzid = true;
+                gui = false;
+                fileCount ++;
             } else if (a.contentEquals("--got-restarted")) {
                 dorestart = false;
             } else {
                 gui = false;
             }
+        }
+        if (mzid && csv)  {
+            System.err.println("Currently reading of both CSV and MZIdentML files at the same time is not supported");
+            System.exit(-1);
         }
         if (dorestart) {
             restart(args);
@@ -176,6 +194,10 @@ public class CommandLine {
             XiCSVinFDR.main(args);
             return;
         }
+        if (mzid && (!csv) && (!db) && (!xicsv)) {
+            MZIdentMLFDR.main(args);
+            return;
+        }
         if (csv && (!db) && (!xicsv)) {
             CSVinFDR.main(args);
             return;
@@ -184,6 +206,55 @@ public class CommandLine {
             FDRGUI.main(args);
             return;
         }
-        new XiCSVinFDR().printUsage();
+        printUsage();
+    }
+
+    /**
+     * how xiFDR was started - "java -jar xiFDR-x.y.z.jar" when run from a jar,
+     * otherwise "java org.rappsilber.fdr.CommandLine"
+     */
+    private static String invocation() {
+        try {
+            String name = new File(CommandLine.class.getProtectionDomain().getCodeSource().getLocation().toURI()).getName();
+            if (name.toLowerCase().endsWith(".jar")) {
+                return "java -jar " + name;
+            }
+        } catch (Exception ex) {
+            // fall through to the class name
+        }
+        return "java " + CommandLine.class.getName();
+    }
+
+    /**
+     * Prints the usage for all input types - the shared options once, followed
+     * by the options specific to each input type.
+     */
+    public static void printUsage() {
+        DBConnectionConfig dbcc = new DBConnectionConfig();
+        boolean canDB = false;
+        try {
+            canDB = dbcc.readConfig();
+        } catch (Exception ex) {
+        }
+        
+        String call = invocation();
+        System.out.println("Usage:");
+        System.out.println("  GUI:          " + call);
+        System.out.println("  CSV:          " + call + " [options] " + CSVinFDR.ownArgList());
+        System.out.println("  mzIdentML:    " + call + " [options] " + MZIdentMLFDR.ownArgList());
+        if (canDB)
+            System.out.println("  database:     " + call + " [options] " + DBinFDR.ownArgList());
+        System.out.println();
+        System.out.println("Options for all input types:");
+        System.out.println(OfflineFDR.ownArgDescription());
+        System.out.println("CSV input (any file argument not ending in .mzid/.mzidentml):");
+        System.out.println(CSVinFDR.ownArgDescription());
+        System.out.println(XiCSVinFDR.ownArgDescription());
+        System.out.println("mzIdentML input (file arguments ending in .mzid or .mzidentml):");
+        System.out.println(MZIdentMLFDR.ownArgDescription());
+        if (canDB) {
+            System.out.println("xiSEARCH database input (--dbids=... given):");
+            System.out.println(DBinFDR.ownArgDescription());
+        }
     }
 }

@@ -1402,12 +1402,19 @@ import rappsilber.ms.statistics.utils.UpdateableLong;
 
 
     public String argList() {
-        return "--dbids=A,B,C --connection= " + super.argList() + " --crosslinkonly --Filter --flagModifications";
+        return super.argList() + " " + ownArgList();
+    }
+
+    public static String ownArgList() {
+        return "--dbids=A,B,C --connection= --crosslinkonly --Filter --flagModifications";
     }
 
     public String argDescription() {
-        return super.argDescription() + "\n"
-                + "--dbids=A,B,C            List of search ids\n"
+        return super.argDescription() + "\n" + ownArgDescription();
+    }
+
+    public static String ownArgDescription() {
+        return "--dbids=A,B,C            List of search ids\n"
                 + "--connection=            connection string to be used to\n"
                 + "                         access the database\n "
                 + "--crosslinkonly          only load cross-links\n"

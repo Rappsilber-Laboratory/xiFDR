@@ -3481,6 +3481,15 @@ public abstract class OfflineFDR {
     }
 
     public String argList() {
+        return ownArgList();
+    }
+
+    /**
+     * the arguments handled by OfflineFDR itself - shared by all input types.
+     * Static, so that subclasses can hide it with their own version without
+     * changing what this class reports.
+     */
+    public static String ownArgList() {
         return "--lenghtgroups=A,B,C "
                 + "--psmfdr=X "
                 + "--pepfdr=X "
@@ -3517,6 +3526,14 @@ public abstract class OfflineFDR {
     }
 
     public String argDescription() {
+        return ownArgDescription();
+    }
+
+    /**
+     * description of the arguments handled by OfflineFDR itself - shared by
+     * all input types
+     */
+    public static String ownArgDescription() {
         return "--lengthgroups=A,B,C     how to group peptides by length\n"
                 + "--psmfdr=X               the psm-fdr\n"
                 + "                         can either be a single value or \n"

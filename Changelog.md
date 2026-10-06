@@ -1,3 +1,11 @@
+2.4.3: command-line mzIdentML input, per-input-type usage, Add-Opens manifest
+* Rename MZIdentXLFDR to MZIdentMLFDR (GUI updated accordingly)
+* MZIdentMLFDR can now run from the command line:
+   * --mzid-score=X selects the score used for FDR calculation
+   * --passthreshold-only only reads matches flagged passThreshold
+* CommandLine sends .mzid/.mzidentml inputs to MZIdentMLFDR and rejects mixing CSV and mzIdentML inputs
+* jar-with-dependencies manifest gets Add-Opens for java.base/sun.reflect.annotation, java.lang and java.util.jmzidentml rewrites @XmlSchema annotation internals when reading mzIdentML, which fails on Java 16+ without it.
+* BugFix: passthreshold-only only filtered on linear CSMs
 
 2.4.2
 

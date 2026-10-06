@@ -22,16 +22,21 @@ import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
+import java.text.DecimalFormat;
 import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.rappsilber.fdr.entities.PSM;
 import org.rappsilber.fdr.entities.PeptidePair;
+import org.rappsilber.fdr.utils.CalculateWriteUpdate;
+import org.rappsilber.fdr.utils.MaximisingStatus;
 import org.rappsilber.fdr.utils.StreamReplaceWriter;
+import org.rappsilber.utils.UpdatableChar;
 import uk.ac.ebi.jmzidml.MzIdentMLElement;
 import uk.ac.ebi.jmzidml.model.mzidml.AnalysisCollection;
 import uk.ac.ebi.jmzidml.model.mzidml.AnalysisProtocolCollection;
@@ -62,7 +67,7 @@ import uk.ac.ebi.jmzidml.model.utils.MzIdentMLVersion;
 import uk.ac.ebi.jmzidml.xml.io.MzIdentMLMarshaller;
 import uk.ac.ebi.jmzidml.xml.io.MzIdentMLUnmarshaller;
 
-public class MZIdentXLFDR extends OfflineFDR {
+public class MZIdentMLFDR extends OfflineFDR {
 
     private MzIdentMLUnmarshaller unmarshaller;
     //private URL xmlFileURL = JmzIdentMLParser.class.getClassLoader().getResource("CPTAC_Progenesis_Identifications.mzid");
@@ -141,6 +146,9 @@ public class MZIdentXLFDR extends OfflineFDR {
     private Boolean isVerbose = true;
     
     private boolean deletePassThreshold = true;
+
+    /** only read in matches flagged as passThreshold (command line) */
+    private boolean passThresholdOnly = false;
 //    
 //    public static void main(String[] args) {
 //        MZIdentXLFDR mzidToCsv = new MZIdentXLFDR();
@@ -170,6 +178,11 @@ public class MZIdentXLFDR extends OfflineFDR {
         MzIdentMLUnmarshaller mzIdentMLUnmarshaller = new MzIdentMLUnmarshaller(f);
         //MZIdentXLFDR mzidToCsv = new MZIdentXLFDR();
         this.unmarshaller = mzIdentMLUnmarshaller;
+        if (xmlFile == null || xmlFile.isEmpty()) {
+            xmlFile = f.getAbsolutePath();
+        } else {
+            xmlFile += "\n" + f.getAbsolutePath();
+        }
         this.init(passThreshHoldOnly);
     }
 
@@ -295,6 +308,9 @@ public class MZIdentXLFDR extends OfflineFDR {
                 List<SpectrumIdentificationItem> listSII = sir.getSpectrumIdentificationItem();
 
                 for (SpectrumIdentificationItem sii : listSII) {
+                    if (passThreshHoldOnly && !sii.isPassThreshold())
+                        continue;
+
                     siiIdHashMap.put(sii.getId(), sii);
                     siiIdToSirHashMap.put(sii.getId(), sir);
                     boolean isCrosslinked = false;
@@ -621,7 +637,136 @@ public class MZIdentXLFDR extends OfflineFDR {
     public void setPSMScore(String PSMScore) {
         this.PSMScore = PSMScore;
     }
-    
+
+    @Override
+    public String argList() {
+        return super.argList() + " " + ownArgList();
+    }
+
+    public static String ownArgList() {
+        return "--mzid-score=X --passthreshold-only mzid-file1 mzid-file2";
+    }
+
+    @Override
+    public String argDescription() {
+        return super.argDescription() + "\n" + ownArgDescription();
+    }
+
+    public static String ownArgDescription() {
+        return "--mzid-score=X                name or cv-accession of the score\n"
+                + "                         to be used for the FDR\n"
+                + "                         default: score\n"
+                + "--passthreshold-only     only read matches flagged as\n"
+                + "                         passThreshold in the mzIdentML\n";
+    }
+
+    @Override
+    public String[] parseArgs(String[] argv, FDRSettings settings) {
+        ArrayList<String> unknown = new ArrayList<String>();
+
+        argv = super.parseArgs(argv, settings);
+
+        for (String arg : argv) {
+            if (arg.toLowerCase().startsWith("--mzid-score=")) {
+                setPSMScore(arg.substring("--mzid-score=".length()));
+            } else if (arg.toLowerCase().contentEquals("--passthreshold-only")) {
+                passThresholdOnly = true;
+            } else if (arg.toLowerCase().contentEquals("--help")) {
+                printUsage();
+                System.exit(0);
+            } else {
+                unknown.add(arg);
+            }
+        }
+        String[] ret = new String[unknown.size()];
+        ret = unknown.toArray(ret);
+        if (ret.length == 0) {
+            printUsage();
+            System.exit(1);
+        }
+
+        return ret;
+    }
+
+    public static void main(String[] argv) throws FileNotFoundException {
+        MZIdentMLFDR ofdr = new MZIdentMLFDR();
+        runMZIdentMLFDR(ofdr, argv);
+        System.exit(0);
+    }
+
+    protected static FDRResult runMZIdentMLFDR(MZIdentMLFDR ofdr, String[] argv) throws FileNotFoundException {
+        FDRSettings settings = new FDRSettingsImpl();
+
+        String[] files = ofdr.parseArgs(argv, settings);
+
+        if (ofdr.getCsvOutDirSetting() != null) {
+            if (ofdr.getCsvOutBaseSetting() == null) {
+                ofdr.setCsvOutBaseSetting("FDR");
+            }
+        }
+
+        if (ofdr.getCsvOutBaseSetting() != null) {
+            if (ofdr.getCsvOutDirSetting() == null)
+                ofdr.setCsvOutDirSetting(".");
+
+            System.out.println("writing results to " + ofdr.getCsvOutDirSetting() + "/" + ofdr.getCsvOutBaseSetting() + "*");
+            System.out.flush();
+        }
+
+        // read in all files
+        for (String f : files) {
+            Logger.getLogger(MZIdentMLFDR.class.getName()).log(Level.INFO, "Read data from mzIdentML " + f);
+            try {
+                ofdr.readMzIdentML(new File(f), ofdr.passThresholdOnly);
+            } catch (IOException ex) {
+                Logger.getLogger(MZIdentMLFDR.class.getName()).log(Level.SEVERE, "Error while reading file: " + f, ex);
+                System.exit(-1);
+            } catch (ParseException ex) {
+                Logger.getLogger(MZIdentMLFDR.class.getName()).log(Level.SEVERE, "Error parsing file: " + f, ex);
+                System.exit(-1);
+            }
+        }
+
+        final CalculateWriteUpdate cu = new CalculateWriteUpdate() {
+            @Override
+            public void setStatus(MaximisingStatus state) {
+            }
+
+            @Override
+            public void setStatusText(String text) {
+            }
+
+            @Override
+            public void reportError(String text, Exception ex) {
+                Logger.getLogger(MZIdentMLFDR.class.getName()).log(Level.SEVERE, text, ex);
+            }
+
+            @Override
+            public void setCurrent(double psm, double peptidepair, double protein, double link, double ppi) {
+                Logger.getLogger(MZIdentMLFDR.class.getName()).log(Level.INFO, "next round: PSM FDR: " +psm + " PepPairFDR:" + peptidepair + " Protein FDR:"+protein + " LinkFDR:" + link + " PPI FDR:" + ppi);
+            }
+
+            @Override
+            public void setComplete() {
+                Logger.getLogger(MZIdentMLFDR.class.getName()).log(Level.INFO, "Calculate Write Finished");
+            }
+
+            @Override
+            public boolean stopped() {
+                return false;
+            }
+        };
+
+        FDRResult res = null;
+        Logger.getLogger(MZIdentMLFDR.class.getName()).log(Level.INFO, "Calculate FDR");
+        if (((DecimalFormat)ofdr.getNumberFormat()).getDecimalFormatSymbols().getDecimalSeparator() == ',') {
+            res = ofdr.calculateWriteFDR(ofdr.getCsvOutDirSetting(), ofdr.getCsvOutBaseSetting(), ";", settings, cu);
+        } else {
+            res = ofdr.calculateWriteFDR(ofdr.getCsvOutDirSetting(), ofdr.getCsvOutBaseSetting(), ",", settings, cu);
+        }
+        return res;
+    }
+
     
     protected void assignFDR(SpectrumIdentificationItem sii, String psmID) {
         
@@ -935,4 +1080,5 @@ public class MZIdentXLFDR extends OfflineFDR {
     public void setCrosslinkedSearchAcc(String crosslinkedSearchAcc) {
         this.crosslinkedSearchAcc = crosslinkedSearchAcc;
     }
+
 }

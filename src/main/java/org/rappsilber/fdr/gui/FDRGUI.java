@@ -61,7 +61,7 @@ import org.rappsilber.fdr.FDRSettings;
 import org.rappsilber.fdr.FDRSettingsImpl;
 import org.rappsilber.fdr.result.FDRResult;
 import org.rappsilber.fdr.result.FDRResultLevel;
-import org.rappsilber.fdr.MZIdentXLFDR;
+import org.rappsilber.fdr.MZIdentMLFDR;
 import org.rappsilber.fdr.OfflineFDR;
 import org.rappsilber.fdr.XiCSVinFDR;
 import org.rappsilber.fdr.XiInFDR;
@@ -645,7 +645,7 @@ public class FDRGUI extends javax.swing.JFrame {
             final String extension = cmbPeakListFormat.getSelectedItem().toString();
             final String template  = cmbMzMLScan2ID.getSelectedItem().toString();
             // if (f.canWrite())
-            if ( fdr instanceof MZIdentXLFDR) {
+            if ( fdr instanceof MZIdentMLFDR) {
                 setStatus("Writing mzIdenML");
                 writeMZIdentML();
                 setStatus("done writing mzIdentML");
@@ -688,8 +688,8 @@ public class FDRGUI extends javax.swing.JFrame {
         try {
             final File f = getMzIdentMLOutput();
             // if (f.canWrite())
-            if (getFdr() instanceof MZIdentXLFDR) {
-                ((MZIdentXLFDR) getFdr()).writeMZIdentML(f.getAbsolutePath(), getResult());
+            if (getFdr() instanceof MZIdentMLFDR) {
+                ((MZIdentMLFDR) getFdr()).writeMZIdentML(f.getAbsolutePath(), getResult());
             } else {
                 JOptionPane.showMessageDialog(this, "mzIdentML export currently only supported with mzIdentML source files");
             }
@@ -1093,7 +1093,7 @@ public class FDRGUI extends javax.swing.JFrame {
             }
 
             setStatus("Start");
-            final MZIdentXLFDR ofdr = new MZIdentXLFDR();
+            final MZIdentMLFDR ofdr = new MZIdentMLFDR();
 
             setFdr(ofdr);
 
@@ -1450,7 +1450,7 @@ public class FDRGUI extends javax.swing.JFrame {
     }
 
     public void setEnableWrite(final boolean enable) {
-        final boolean isMzIdent = getFdr() instanceof MZIdentXLFDR;
+        final boolean isMzIdent = getFdr() instanceof MZIdentMLFDR;
         Runnable setModel = new Runnable() {
             public void run() {
                 btnWrite.setEnabled(enable);

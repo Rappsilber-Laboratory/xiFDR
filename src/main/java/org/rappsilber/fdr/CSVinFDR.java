@@ -707,12 +707,19 @@ public class CSVinFDR extends OfflineFDR {
     }
     
     public String argList() {
-        return super.argList() + " --map=col:name,col:name --delimiter= --quote= --inputlocale=  csv-file1 csv-file2 --decoy-prefix";
+        return super.argList() + " " + ownArgList();
+    }
+
+    public static String ownArgList() {
+        return "--map=col:name,col:name --delimiter= --quote= --inputlocale=  csv-file1 csv-file2 --decoy-prefix";
     }
     
     public String argDescription() {
-        return super.argDescription() + "\n"
-                + "--map=X                  a mapping of column name to expected\n"
+        return super.argDescription() + "\n" + ownArgDescription();
+    }
+
+    public static String ownArgDescription() {
+        return "--map=X                  a mapping of column name to expected\n"
                 + "                         column names\n"
                 + "                         the column are:\n"
                 + "                             run (optional)\n"
