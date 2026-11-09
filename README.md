@@ -1,7 +1,7 @@
 xiFDR
 =====
 
-You can download the latest release of xiFDR **[here](https://www.rappsilberlab.org/software/xifdr/)**. The application can then be run by clicking on "startWindows", "startUnix" or "startMacOS". xiFDR is implemented as a java application and requires java 8 or above to run.
+You can download the latest release of xiFDR **[here](https://rapplab.bioanalytik.tu-berlin.de/software/xifdr/)**. The application can then be run by clicking on "startWindows", "startUnix" or "startMacOS". xiFDR is implemented as a java application and requires java 8 or above to run.
 
 xiFDR is an application for estimating false discovery rates (FDRs) in crosslinking mass spectrometry. It filters crosslinked peptide spectra matches (CSMs) to a list of identifications and derives associated confidence values.
 
